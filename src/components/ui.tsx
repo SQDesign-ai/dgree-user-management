@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { Search } from "lucide-react";
+import { STAGE_META, type YachtStage } from "../data/mock";
 
 // ---- Badge ---------------------------------------------------------------
 
@@ -38,6 +39,22 @@ export function Badge({
       {dot && <span className={`size-1.5 rounded-full ${dotColor[tone]}`} />}
       {children}
     </span>
+  );
+}
+
+/** Badge for a yacht's delivery lifecycle stage. */
+export function StageBadge({
+  stage,
+  dot = true,
+}: {
+  stage: YachtStage;
+  dot?: boolean;
+}) {
+  const m = STAGE_META[stage];
+  return (
+    <Badge tone={m.tone} dot={dot}>
+      {m.short}
+    </Badge>
   );
 }
 

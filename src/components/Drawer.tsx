@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useId } from "react";
-import { X } from "lucide-react";
+import { X, Check } from "lucide-react";
+import { Avatar, Badge } from "./ui";
 
 // ---- Right-side drawer shell --------------------------------------------
 
@@ -12,6 +13,7 @@ export function Drawer({
   onSubmit,
   submitLabel = "Save",
   submitDisabled = false,
+  footer,
 }: {
   open: boolean;
   onClose: () => void;
@@ -21,6 +23,8 @@ export function Drawer({
   onSubmit: () => void;
   submitLabel?: string;
   submitDisabled?: boolean;
+  /** Replaces the default Cancel/Submit footer (e.g. for a multi-step wizard). */
+  footer?: ReactNode;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -42,7 +46,7 @@ export function Drawer({
         onClick={onClose}
       />
       <aside
-        className="relative z-10 flex h-full w-full max-w-[440px] flex-col border-l border-line bg-surface-2 shadow-2xl [animation:drawer-in_220ms_cubic-bezier(0.22,1,0.36,1)]"
+        className="relative z-10 flex h-full w-[50vw] min-w-[520px] max-w-full flex-col border-l border-line bg-surface-2 shadow-2xl [animation:drawer-in_220ms_cubic-bezier(0.22,1,0.36,1)]"
         role="dialog"
         aria-modal="true"
       >
@@ -73,22 +77,24 @@ export function Drawer({
           <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
             {children}
           </div>
-          <footer className="flex justify-end gap-2 border-t border-line bg-surface/40 px-6 py-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-3 transition-colors hover:bg-white/[0.06]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitDisabled}
-              className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {submitLabel}
-            </button>
-          </footer>
+          {footer ?? (
+            <footer className="flex justify-end gap-2 border-t border-line bg-surface/40 px-6 py-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-3 transition-colors hover:bg-white/[0.06]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitDisabled}
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {submitLabel}
+              </button>
+            </footer>
+          )}
         </form>
       </aside>
     </div>
@@ -281,6 +287,90 @@ export function AutoField({
 
 export function Note({ children }: { children: ReactNode }) {
   return <p className="text-xs leading-relaxed text-muted">{children}</p>;
+}
+
+// ---- multi-select checklist ---------------------------------------------
+
+export interface MultiSelectOption {
+  value: string;
+  label: string;
+  sublabel?: string;
+  badge?: string; // e.g. "Sail ADV"
+}
+
+/**
+ * Scrollable checkbox list for picking many items (brands, people…). Selection
+ * is controlled via `selected` (array of values) + `onToggle`.
+ */
+export function MultiSelectField({
+  label,
+  options,
+  selected,
+  onToggle,
+  avatar = false,
+  emptyText = "Nothing available.",
+}: {
+  label: string;
+  options: MultiSelectOption[];
+  selected: string[];
+  onToggle: (value: string) => void;
+  avatar?: boolean;
+  emptyText?: string;
+}) {
+  const chosen = new Set(selected);
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-xs font-semibold text-ink-3">{label}</span>
+        {selected.length > 0 && (
+          <span className="text-xs text-brand">{selected.length} selected</span>
+        )}
+      </div>
+      {options.length === 0 ? (
+        <div className="rounded-lg border border-line bg-[#0e2149]/60 px-3 py-3 text-xs text-muted">
+          {emptyText}
+        </div>
+      ) : (
+        <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-line bg-[#0e2149]/40 p-1.5">
+          {options.map((o) => {
+            const on = chosen.has(o.value);
+            return (
+              <button
+                type="button"
+                key={o.value}
+                onClick={() => onToggle(o.value)}
+                className={`flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors ${
+                  on ? "bg-brand/15" : "hover:bg-white/[0.04]"
+                }`}
+              >
+                <span
+                  className={`flex size-4 shrink-0 items-center justify-center rounded border ${
+                    on
+                      ? "border-brand bg-brand text-white"
+                      : "border-line bg-transparent"
+                  }`}
+                >
+                  {on && <Check className="size-3" strokeWidth={3} />}
+                </span>
+                {avatar && <Avatar name={o.label} size={26} />}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm text-ink">
+                    {o.label}
+                  </span>
+                  {o.sublabel && (
+                    <span className="block truncate text-xs text-muted">
+                      {o.sublabel}
+                    </span>
+                  )}
+                </span>
+                {o.badge && <Badge tone="brand">{o.badge}</Badge>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** Read-only context chip used where the Figma "Assign to" is fixed. */

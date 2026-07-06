@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Plus, ChevronRight, ChevronLeft } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
-import { Badge, Button, Card, SearchInput, Tabs } from "../components/ui";
+import { Badge, Button, Card, SearchInput, Tabs, StageBadge } from "../components/ui";
 import { CreateTeamDrawer, CreateYachtDrawer } from "../components/drawers";
 import {
   useStore,
@@ -11,7 +11,8 @@ import {
   teamsInShipyard,
   yachtsInShipyard,
 } from "../store";
-import { yachtLabel } from "../data/mock";
+import { yachtLabel, yachtStage } from "../data/mock";
+import { FEATURES } from "../config";
 
 export default function ShipyardDetail() {
   useStore();
@@ -32,7 +33,10 @@ export default function ShipyardDetail() {
       <PageHeader
         crumbs={[
           { label: "Access management", to: "/" },
-          { label: "Shipyards", to: "/" },
+          ...(group
+            ? [{ label: `${group.name} Group`, to: `/groups/${group.id}` }]
+            : []),
+          { label: shipyard.name },
         ]}
         title={shipyard.name}
         badge={
@@ -118,10 +122,12 @@ export default function ShipyardDetail() {
         <>
           <div className="mb-4 flex items-center justify-between gap-3">
             <SearchInput placeholder="Search yachts" />
-            <Button onClick={() => setYachtOpen(true)}>
-              <Plus className="size-4" />
-              Create yacht
-            </Button>
+            {FEATURES.createYacht && (
+              <Button onClick={() => setYachtOpen(true)}>
+                <Plus className="size-4" />
+                Create yacht
+              </Button>
+            )}
           </div>
           <Card>
             <table className="w-full text-sm">
@@ -147,15 +153,7 @@ export default function ShipyardDetail() {
                       {yachtLabel(y)}
                     </td>
                     <td className="px-5 py-4">
-                      {y.status === "delivered" ? (
-                        <Badge tone="success" dot>
-                          Delivered
-                        </Badge>
-                      ) : (
-                        <Badge tone="warn" dot>
-                          In production
-                        </Badge>
-                      )}
+                      <StageBadge stage={yachtStage(y)} />
                     </td>
                     <td className="px-5 py-4 text-ink-2">{y.mmsi ?? "—"}</td>
                     <td className="px-5 py-4 text-ink-2">{y.lastUpdate}</td>

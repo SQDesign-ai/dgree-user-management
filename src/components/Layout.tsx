@@ -50,14 +50,10 @@ function Logo() {
 }
 
 function NavRow({ item }: { item: NavItem }) {
+  // No selected/hover states — the sidebar is static chrome here; only the
+  // user-avatar menu at the bottom carries a selected treatment.
   return (
-    <div
-      className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-        item.active
-          ? "bg-white/10 font-medium text-white"
-          : "text-ink-3 hover:bg-white/[0.06] hover:text-white"
-      }`}
-    >
+    <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-3">
       <span className="text-ink-3">{item.icon}</span>
       {item.label}
     </div>
@@ -81,7 +77,7 @@ function Sidebar() {
 
       <Link
         to="/"
-        className="mb-2 flex items-center justify-between rounded-xl bg-white/[0.06] px-3 py-2.5 text-sm font-semibold text-white ring-1 ring-white/10"
+        className="mb-2 flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-white"
       >
         <span className="flex items-center gap-2.5">
           <Ship className="size-[18px]" />

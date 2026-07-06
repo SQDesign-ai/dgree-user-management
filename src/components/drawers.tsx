@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Drawer,
   TextField,
@@ -6,8 +6,8 @@ import {
   SelectField,
   DateField,
   CheckboxField,
-  AutoField,
   AssignField,
+  MultiSelectField,
   Note,
   Row,
 } from "./Drawer";
@@ -18,8 +18,17 @@ import {
   addYacht,
   getGroups,
   getShipyards,
+  ungroupedShipyards,
+  candidatePeopleForShipyard,
+  candidatePeopleForGroup,
+  yachtsInShipyard,
+  teamsInShipyard,
+  yachtsForTeam,
+  teamsForYacht,
+  setTeamYachtLinks,
+  setYachtTeamLinks,
 } from "../store";
-import type { YachtRole } from "../data/mock";
+import { yachtLabel, type YachtRole } from "../data/mock";
 
 // -------------------------------------------------------------------------
 // Create group
@@ -33,11 +42,20 @@ export function CreateGroupDrawer({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [shipyardIds, setShipyardIds] = useState<string[]>([]);
+  const available = ungroupedShipyards();
+
+  function toggleShipyard(id: string) {
+    setShipyardIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+    );
+  }
 
   function submit() {
-    addGroup(name);
+    addGroup(name, { shipyardIds });
     setName("");
     setDescription("");
+    setShipyardIds([]);
     onClose();
   }
 
@@ -63,14 +81,80 @@ export function CreateGroupDrawer({
         onChange={setDescription}
         placeholder="Optional"
       />
-      <Note>Add shipyards (brands) afterwards from the group page.</Note>
+      <MultiSelectField
+        label="Attach brands (shipyards)"
+        options={available.map((s) => ({
+          value: s.id,
+          label: s.name,
+          sublabel: s.yachts > 0 ? `${s.yachts} yachts` : "No yachts yet",
+        }))}
+        selected={shipyardIds}
+        onToggle={toggleShipyard}
+        emptyText="Every brand is already assigned to a group."
+      />
+      <Note>
+        Only brands not yet in a group are listed. You can also add more
+        shipyards afterwards from the group page.
+      </Note>
     </Drawer>
   );
 }
 
 // -------------------------------------------------------------------------
-// Create shipyard
+// Create shipyard — multi-step wizard (shipyard → teams → people), all in the
+// drawer. Step 1 captures the shipyard; step 2 defines its teams; step 3 adds
+// existing people to each team.
 // -------------------------------------------------------------------------
+
+const STANDARD_DEPARTMENTS: [string, string][] = [
+  ["Tech Dep", "Technical department"],
+  ["Customer Care", "Customer support"],
+  ["Warranty Dep", "Warranty & after-sales"],
+];
+
+interface DraftTeam {
+  key: number;
+  name: string;
+  description: string;
+  memberIds: string[];
+}
+
+function StepDots({ step }: { step: number }) {
+  const labels = ["Shipyard", "Teams", "People"];
+  return (
+    <div className="flex items-center gap-2">
+      {labels.map((label, i) => {
+        const n = i + 1;
+        const active = n === step;
+        const done = n < step;
+        return (
+          <div key={label} className="flex items-center gap-2">
+            <span
+              className={`flex size-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                active
+                  ? "bg-brand text-white"
+                  : done
+                  ? "bg-brand/30 text-[#9dc0ff]"
+                  : "bg-white/[0.06] text-muted"
+              }`}
+            >
+              {n}
+            </span>
+            <span
+              className={`text-xs font-medium ${
+                active ? "text-white" : "text-muted"
+              }`}
+            >
+              {label}
+            </span>
+            {n < 3 && <span className="mx-1 h-px w-5 bg-line" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CreateShipyardDrawer({
   open,
   onClose,
@@ -81,58 +165,258 @@ export function CreateShipyardDrawer({
   groupId?: string;
 }) {
   const groups = getGroups();
+  const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [group, setGroup] = useState(groupId ?? "");
   const [standardDepartments, setStandardDepartments] = useState(true);
+  const [teams, setTeams] = useState<DraftTeam[]>([]);
+  const keyRef = useRef(0);
+  const newKey = () => ++keyRef.current;
 
-  // keep group selection in sync when opened from a specific group card
   const effectiveGroup = groupId ?? group;
+  const candidates = candidatePeopleForGroup(effectiveGroup);
 
-  function submit() {
-    if (!effectiveGroup) return;
-    addShipyard(effectiveGroup, name, { standardDepartments });
+  function reset() {
+    setStep(1);
     setName("");
     setGroup(groupId ?? "");
     setStandardDepartments(true);
+    setTeams([]);
+  }
+  function close() {
+    reset();
     onClose();
   }
+
+  function addStandardTeams() {
+    setTeams((ts) => [
+      ...ts,
+      ...STANDARD_DEPARTMENTS.filter(
+        ([n]) => !ts.some((t) => t.name.trim().toLowerCase() === n.toLowerCase())
+      ).map(([n, d]) => ({
+        key: newKey(),
+        name: n,
+        description: d,
+        memberIds: [] as string[],
+      })),
+    ]);
+  }
+  function addBlankTeam() {
+    setTeams((ts) => [
+      ...ts,
+      { key: newKey(), name: "", description: "", memberIds: [] },
+    ]);
+  }
+  function updateTeam(key: number, patch: Partial<DraftTeam>) {
+    setTeams((ts) => ts.map((t) => (t.key === key ? { ...t, ...patch } : t)));
+  }
+  function removeTeam(key: number) {
+    setTeams((ts) => ts.filter((t) => t.key !== key));
+  }
+  function toggleMember(key: number, id: string) {
+    setTeams((ts) =>
+      ts.map((t) =>
+        t.key === key
+          ? {
+              ...t,
+              memberIds: t.memberIds.includes(id)
+                ? t.memberIds.filter((x) => x !== id)
+                : [...t.memberIds, id],
+            }
+          : t
+      )
+    );
+  }
+
+  const validTeams = teams.filter((t) => t.name.trim());
+
+  // gate for the primary button per step
+  const canAdvance =
+    step === 1
+      ? !!name.trim() && !!effectiveGroup
+      : step === 2
+      ? validTeams.length > 0
+      : true;
+
+  function primary() {
+    if (!canAdvance) return;
+    if (step === 1) {
+      // seed standard departments the first time we reach the teams step
+      if (teams.length === 0 && standardDepartments) addStandardTeams();
+      setStep(2);
+    } else if (step === 2) {
+      setStep(3);
+    } else {
+      const sid = addShipyard(effectiveGroup, name, {
+        standardDepartments: false,
+      });
+      validTeams.forEach((t) =>
+        addTeam(sid, {
+          name: t.name,
+          description: t.description,
+          memberIds: t.memberIds,
+        })
+      );
+      close();
+    }
+  }
+
+  const footer = (
+    <footer className="flex items-center justify-between gap-2 border-t border-line bg-surface/40 px-6 py-4">
+      <button
+        type="button"
+        onClick={() => (step === 1 ? close() : setStep(step - 1))}
+        className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-3 transition-colors hover:bg-white/[0.06]"
+      >
+        {step === 1 ? "Cancel" : "Back"}
+      </button>
+      <button
+        type="submit"
+        disabled={!canAdvance}
+        className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {step < 3 ? "Next" : "Create shipyard"}
+      </button>
+    </footer>
+  );
 
   return (
     <Drawer
       open={open}
-      onClose={onClose}
+      onClose={close}
       title="Create shipyard"
-      submitLabel="Create shipyard"
-      submitDisabled={!name.trim() || !effectiveGroup}
-      onSubmit={submit}
+      onSubmit={primary}
+      footer={footer}
     >
-      <TextField
-        label="Shipyard name"
-        value={name}
-        onChange={setName}
-        placeholder="e.g. Sanlorenzo"
-        autoFocus
-      />
-      {groupId ? (
-        <AssignField
-          label="Group"
-          value={groups.find((g) => g.id === groupId)?.name ?? "—"}
-        />
-      ) : (
-        <SelectField
-          label="Group"
-          value={group}
-          onChange={setGroup}
-          placeholder="Select group"
-          options={groups.map((g) => ({ value: g.id, label: g.name }))}
-        />
+      <div className="pb-1">
+        <StepDots step={step} />
+      </div>
+
+      {step === 1 && (
+        <>
+          <TextField
+            label="Shipyard name"
+            value={name}
+            onChange={setName}
+            placeholder="e.g. Sanlorenzo"
+            autoFocus
+          />
+          {groupId ? (
+            <AssignField
+              label="Group"
+              value={groups.find((g) => g.id === groupId)?.name ?? "—"}
+            />
+          ) : (
+            <SelectField
+              label="Group"
+              value={group}
+              onChange={setGroup}
+              placeholder="Select group"
+              options={groups.map((g) => ({ value: g.id, label: g.name }))}
+            />
+          )}
+          <CheckboxField
+            checked={standardDepartments}
+            onChange={setStandardDepartments}
+            label="Prefill standard departments — Tech Dep, Customer Care, Warranty"
+          />
+          <Note>Next you&apos;ll define teams, then add people to each.</Note>
+        </>
       )}
-      <CheckboxField
-        checked={standardDepartments}
-        onChange={setStandardDepartments}
-        label="Create standard departments — Tech Dep, Customer Care, Warranty"
-      />
-      <Note>Assign yachts and add people afterwards from the shipyard page.</Note>
+
+      {step === 2 && (
+        <>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-ink-3">Teams</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={addStandardTeams}
+                className="rounded-md border border-line px-2.5 py-1 text-xs font-medium text-ink-3 hover:bg-white/[0.06]"
+              >
+                + Standard
+              </button>
+              <button
+                type="button"
+                onClick={addBlankTeam}
+                className="rounded-md border border-line px-2.5 py-1 text-xs font-medium text-ink-3 hover:bg-white/[0.06]"
+              >
+                + Add team
+              </button>
+            </div>
+          </div>
+          {teams.length === 0 && (
+            <div className="rounded-lg border border-dashed border-line px-3 py-6 text-center text-xs text-muted">
+              No teams yet. Add standard departments or a custom team.
+            </div>
+          )}
+          {teams.map((t, i) => (
+            <div
+              key={t.key}
+              className="space-y-3 rounded-lg border border-line bg-[#0e2149]/40 p-3"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-2">
+                  Team {i + 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeTeam(t.key)}
+                  className="text-xs font-medium text-muted hover:text-danger"
+                >
+                  Remove
+                </button>
+              </div>
+              <TextField
+                label="Team name"
+                value={t.name}
+                onChange={(v) => updateTeam(t.key, { name: v })}
+                placeholder="e.g. Tech Dep"
+              />
+              <TextField
+                label="Description"
+                value={t.description}
+                onChange={(v) => updateTeam(t.key, { description: v })}
+                placeholder="What this team does"
+              />
+            </div>
+          ))}
+          <Note>At least one named team is required to continue.</Note>
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <span className="text-xs font-semibold text-ink-3">
+            Add people to each team
+          </span>
+          {validTeams.length === 0 && (
+            <Note>No teams to populate.</Note>
+          )}
+          {validTeams.map((t) => (
+            <div key={t.key} className="space-y-2">
+              <div className="text-sm font-semibold text-white">{t.name}</div>
+              <MultiSelectField
+                label="People"
+                avatar
+                options={candidates.map((p) => ({
+                  value: p.id,
+                  label: p.name,
+                  sublabel: p.handle,
+                  badge: p.kind === "sail-adv" ? "Sail ADV" : undefined,
+                }))}
+                selected={t.memberIds}
+                onToggle={(id) => toggleMember(t.key, id)}
+                emptyText="No people available for this group yet."
+              />
+            </div>
+          ))}
+          <Note>
+            Pick existing people from this group (or any Sail ADV member). You
+            can invite brand-new people from each team page later.
+          </Note>
+        </>
+      )}
     </Drawer>
   );
 }
@@ -153,11 +437,27 @@ export function CreateTeamDrawer({
   const [name, setName] = useState("");
   const [shipyard, setShipyard] = useState(shipyardId);
   const [description, setDescription] = useState("");
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+
+  const activeShipyard = shipyard || shipyardId;
+  const candidates = candidatePeopleForShipyard(activeShipyard);
+
+  function changeShipyard(id: string) {
+    setShipyard(id);
+    setMemberIds([]); // candidates differ per group — reset selection
+  }
+
+  function toggleMember(id: string) {
+    setMemberIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+    );
+  }
 
   function submit() {
-    addTeam(shipyard || shipyardId, { name, description });
+    addTeam(activeShipyard, { name, description, memberIds });
     setName("");
     setDescription("");
+    setMemberIds([]);
     onClose();
   }
 
@@ -180,7 +480,7 @@ export function CreateTeamDrawer({
       <SelectField
         label="Shipyard"
         value={shipyard}
-        onChange={setShipyard}
+        onChange={changeShipyard}
         options={shipyards.map((s) => ({ value: s.id, label: s.name }))}
       />
       <TextareaField
@@ -189,7 +489,24 @@ export function CreateTeamDrawer({
         onChange={setDescription}
         placeholder="What this team does"
       />
-      <Note>Add members afterwards from the team page.</Note>
+      <MultiSelectField
+        label="Add people"
+        avatar
+        options={candidates.map((p) => ({
+          value: p.id,
+          label: p.name,
+          sublabel: p.handle,
+          badge: p.kind === "sail-adv" ? "Sail ADV" : undefined,
+        }))}
+        selected={memberIds}
+        onToggle={toggleMember}
+        emptyText="No people available for this shipyard's group yet."
+      />
+      <Note>
+        Pick existing people from this group (or any Sail ADV member). The same
+        person can belong to several teams. You can also invite brand-new people
+        from the team page.
+      </Note>
     </Drawer>
   );
 }
@@ -209,18 +526,28 @@ export function CreateYachtDrawer({
   const shipyards = getShipyards();
   const [name, setName] = useState("");
   const [mmsi, setMmsi] = useState("");
+  const [assetUuid, setAssetUuid] = useState("");
   const [shipyard, setShipyard] = useState(shipyardId);
   const [shipyardDelivery, setShipyardDelivery] = useState("");
   const [ownerDelivery, setOwnerDelivery] = useState("");
 
   function submit() {
+    const stage = ownerDelivery
+      ? "delivered"
+      : shipyardDelivery
+      ? "pre_delivery"
+      : "production";
     addYacht(shipyard || shipyardId, {
       code: name,
       mmsi,
-      status: ownerDelivery || mmsi ? "delivered" : "production",
+      assetUuid,
+      stage,
+      shipyardDeliveryDate: shipyardDelivery || undefined,
+      customerDeliveryDate: ownerDelivery || undefined,
     });
     setName("");
     setMmsi("");
+    setAssetUuid("");
     setShipyardDelivery("");
     setOwnerDelivery("");
     onClose();
@@ -266,11 +593,17 @@ export function CreateYachtDrawer({
           onChange={setOwnerDelivery}
         />
       </Row>
-      <AutoField label="D.gree Asset UUID" text="Generated automatically on create" />
+      <TextField
+        label="D.gree Asset UUID"
+        value={assetUuid}
+        onChange={setAssetUuid}
+        placeholder="Paste the UUID issued by D.gree core"
+      />
       <Note>
-        No more typing UUIDs. The API key, access governance, description, image
-        and delivery status are all managed on the yacht page after creation —
-        one flow, no separate edit screen.
+        The Asset UUID is issued by the D.gree core backend — paste the code
+        here to bind this yacht to it. The API key, access governance,
+        description, image and delivery status are managed on the yacht page
+        after creation.
       </Note>
     </Drawer>
   );
@@ -349,6 +682,131 @@ export function CreateUserDrawer({
         the T&amp;Cs on first login.
       </Note>
     </Drawer>
+  );
+}
+
+// -------------------------------------------------------------------------
+// Assign team ↔ yacht links (many-to-many, editable from both sides)
+// -------------------------------------------------------------------------
+function AssignLinksDrawer({
+  open,
+  onClose,
+  title,
+  label,
+  note,
+  options,
+  initial,
+  onSave,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  label: string;
+  note: string;
+  options: { value: string; label: string; sublabel?: string }[];
+  initial: string[];
+  onSave: (ids: string[]) => void;
+}) {
+  const [sel, setSel] = useState<string[]>(initial);
+  // Re-sync from the store each time the drawer is opened.
+  useEffect(() => {
+    if (open) setSel(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function toggle(id: string) {
+    setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+  function submit() {
+    onSave(sel);
+    onClose();
+  }
+
+  return (
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={title}
+      submitLabel="Save links"
+      onSubmit={submit}
+    >
+      <MultiSelectField
+        label={label}
+        options={options}
+        selected={sel}
+        onToggle={toggle}
+        emptyText="Nothing available in this shipyard yet."
+      />
+      <Note>{note}</Note>
+    </Drawer>
+  );
+}
+
+/** Assign which yachts a team can access — opened from the team page. */
+export function AssignYachtsToTeamDrawer({
+  open,
+  onClose,
+  shipyardId,
+  teamId,
+  teamName,
+}: {
+  open: boolean;
+  onClose: () => void;
+  shipyardId: string;
+  teamId: string;
+  teamName: string;
+}) {
+  const options = yachtsInShipyard(shipyardId).map((y) => ({
+    value: y.id,
+    label: yachtLabel(y),
+    sublabel: y.mmsi ? `MMSI ${y.mmsi}` : "MMSI not assigned",
+  }));
+  const initial = yachtsForTeam(shipyardId, teamId).map((y) => y.id);
+  return (
+    <AssignLinksDrawer
+      open={open}
+      onClose={onClose}
+      title={`Assign yachts · ${teamName}`}
+      label="Yachts in this shipyard"
+      note="A team can access many yachts, and a yacht can be worked by many teams. The same link shows on the yacht page."
+      options={options}
+      initial={initial}
+      onSave={(ids) => setTeamYachtLinks(shipyardId, teamId, ids)}
+    />
+  );
+}
+
+/** Assign which teams can access a yacht — opened from the yacht page. */
+export function AssignTeamsToYachtDrawer({
+  open,
+  onClose,
+  shipyardId,
+  yachtId,
+  yachtName,
+}: {
+  open: boolean;
+  onClose: () => void;
+  shipyardId: string;
+  yachtId: string;
+  yachtName: string;
+}) {
+  const options = teamsInShipyard(shipyardId).map((t) => ({
+    value: t.id,
+    label: t.name,
+    sublabel: t.description,
+  }));
+  const initial = teamsForYacht(shipyardId, yachtId).map((t) => t.id);
+  return (
+    <AssignLinksDrawer
+      open={open}
+      onClose={onClose}
+      title={`Assign teams · ${yachtName}`}
+      label="Teams in this shipyard"
+      note="A yacht can be worked by many teams, and a team can access many yachts. The same link shows on the team page."
+      options={options}
+      initial={initial}
+      onSave={(ids) => setYachtTeamLinks(shipyardId, yachtId, ids)}
+    />
   );
 }
 

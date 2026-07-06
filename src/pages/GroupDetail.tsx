@@ -16,6 +16,7 @@ import {
   addGroupPerson,
 } from "../store";
 import type { MemberStatus } from "../data/mock";
+import { FEATURES } from "../config";
 
 const statusTone: Record<MemberStatus, "success" | "brand" | "danger"> = {
   active: "success",
@@ -150,10 +151,12 @@ export default function GroupDetail() {
         <>
           <div className="mb-4 flex items-center justify-between gap-3">
             <SearchInput placeholder="Search shipyards" />
-            <Button onClick={() => setShipyardOpen(true)}>
-              <Plus className="size-4" />
-              Add shipyard
-            </Button>
+            {FEATURES.createShipyard && (
+              <Button onClick={() => setShipyardOpen(true)}>
+                <Plus className="size-4" />
+                Add shipyard
+              </Button>
+            )}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {groupShipyards.map((s) => (

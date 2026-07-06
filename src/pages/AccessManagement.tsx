@@ -5,6 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Tabs, Avatar } from "../components/ui";
 import { CreateGroupDrawer, CreateShipyardDrawer } from "../components/drawers";
 import { sailAdvTeams } from "../data/mock";
+import { FEATURES } from "../config";
 import {
   useStore,
   getGroupsWithShipyards,
@@ -70,13 +71,15 @@ function GroupCard({
         )}
       </div>
 
-      <button
-        onClick={() => onAddShipyard(group.id)}
-        className="flex w-full items-center justify-center gap-1.5 border-t border-line-soft/60 py-2.5 text-xs font-medium text-brand transition-colors hover:bg-brand/5"
-      >
-        <Plus className="size-3.5" />
-        Add shipyard
-      </button>
+      {FEATURES.createShipyard && (
+        <button
+          onClick={() => onAddShipyard(group.id)}
+          className="flex w-full items-center justify-center gap-1.5 border-t border-line-soft/60 py-2.5 text-xs font-medium text-brand transition-colors hover:bg-brand/5"
+        >
+          <Plus className="size-3.5" />
+          Add shipyard
+        </button>
+      )}
     </Card>
   );
 }
@@ -134,10 +137,12 @@ export default function AccessManagement() {
                 className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
               />
             </div>
-            <Button onClick={() => setGroupOpen(true)}>
-              <Plus className="size-4" />
-              Add Group
-            </Button>
+            {FEATURES.createGroup && (
+              <Button onClick={() => setGroupOpen(true)}>
+                <Plus className="size-4" />
+                Add Group
+              </Button>
+            )}
           </div>
 
           <div className="gap-4 lg:columns-2">

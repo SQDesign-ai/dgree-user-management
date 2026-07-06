@@ -3,15 +3,26 @@ import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Plus, ChevronRight, Link as LinkIcon, ShieldCheck } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Avatar } from "../components/ui";
-import { CreateUserDrawer, fullName } from "../components/drawers";
+import {
+  CreateUserDrawer,
+  AssignYachtsToTeamDrawer,
+  fullName,
+} from "../components/drawers";
 import {
   useStore,
   shipyardById,
+  groupById,
   teamById,
   membersInTeam,
+  yachtsForTeam,
   addTeamMember,
 } from "../store";
-import type { MemberStatus } from "../data/mock";
+import {
+  yachtLabel,
+  yachtStage,
+  STAGE_META,
+  type MemberStatus,
+} from "../data/mock";
 
 const statusTone: Record<MemberStatus, "success" | "brand" | "danger"> = {
   active: "success",
@@ -31,20 +42,25 @@ export default function TeamDetail() {
   const navigate = useNavigate();
 
   const [personOpen, setPersonOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
 
   const shipyard = shipyardById(shipyardId);
   const team = teamById(shipyardId, teamId);
   if (!shipyard || !team) return <Navigate to="/" replace />;
 
+  const group = groupById(shipyard.groupId);
   const members = membersInTeam(teamId);
+  const linkedYachts = yachtsForTeam(shipyardId, teamId);
 
   return (
     <>
       <PageHeader
         crumbs={[
           { label: "Access management", to: "/" },
+          ...(group
+            ? [{ label: `${group.name} Group`, to: `/groups/${group.id}` }]
+            : []),
           { label: shipyard.name, to: `/shipyards/${shipyardId}` },
-          { label: "Teams", to: `/shipyards/${shipyardId}` },
           { label: team.name },
         ]}
         title={team.name}
@@ -83,7 +99,14 @@ export default function TeamDetail() {
                       <div className="flex items-center gap-3">
                         <Avatar name={m.name} />
                         <div className="leading-tight">
-                          <div className="font-medium text-white">{m.name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white">
+                              {m.name}
+                            </span>
+                            {m.kind === "sail-adv" && (
+                              <Badge tone="brand">Sail ADV</Badge>
+                            )}
+                          </div>
                           <div className="text-xs text-ink-4">{m.handle}</div>
                         </div>
                       </div>
@@ -131,40 +154,55 @@ export default function TeamDetail() {
 
         {/* Linked yachts */}
         <aside>
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-2">
-            Linked yachts
-          </h3>
-          <Card className="mb-3 p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="font-semibold text-white">
-                  SL50-171 · CONTIGO
-                </div>
-                <div className="text-xs text-ink-4">Sanlorenzo · 50 Steel</div>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-2">
+              Linked yachts ({linkedYachts.length})
+            </h3>
+            <button
+              onClick={() => setLinkOpen(true)}
+              className="text-xs font-medium text-brand hover:text-brand-hover"
+            >
+              Assign
+            </button>
+          </div>
+
+          {linkedYachts.map((y) => (
+            <Card key={y.id} className="mb-3 p-4">
+              <div className="flex items-start justify-between">
+                <button
+                  onClick={() =>
+                    navigate(`/shipyards/${shipyardId}/yachts/${y.id}`)
+                  }
+                  className="text-left"
+                >
+                  <div className="font-semibold text-white">
+                    {yachtLabel(y)}
+                  </div>
+                  <div className="text-xs text-ink-4">
+                    {shipyard.name} · {STAGE_META[yachtStage(y)].short}
+                  </div>
+                </button>
               </div>
-              <button className="text-xs font-medium text-ink-4 hover:text-danger">
-                Unlink
-              </button>
-            </div>
-            <div className="mt-3">
-              <Badge tone="success" dot>
-                Access via owner consent
-              </Badge>
-            </div>
-          </Card>
+              <div className="mt-3">
+                <Badge tone="success" dot>
+                  Access via owner consent
+                </Badge>
+              </div>
+            </Card>
+          ))}
 
           <button
-            onClick={() => navigate(`/shipyards/${shipyardId}`)}
+            onClick={() => setLinkOpen(true)}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line py-3 text-sm font-medium text-ink-4 transition-colors hover:border-brand/60 hover:text-ink-2"
           >
             <LinkIcon className="size-4" />
-            Link a yacht
+            {linkedYachts.length ? "Manage linked yachts" : "Link a yacht"}
           </button>
 
           <p className="mt-3 flex gap-2 text-xs leading-relaxed text-muted">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-nav-section" />
-            The shipyard sees this yacht only while the owner&apos;s PoA
-            consents to data access.
+            The shipyard sees a yacht only while the owner&apos;s PoA consents to
+            data access.
           </p>
         </aside>
       </div>
@@ -183,6 +221,14 @@ export default function TeamDetail() {
             status: "invited",
           })
         }
+      />
+
+      <AssignYachtsToTeamDrawer
+        open={linkOpen}
+        onClose={() => setLinkOpen(false)}
+        shipyardId={shipyardId}
+        teamId={teamId}
+        teamName={team.name}
       />
     </>
   );

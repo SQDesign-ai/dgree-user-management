@@ -4,9 +4,17 @@
 // -------------------------------------------------------------------------
 
 export type YachtStatus = "delivered" | "production";
+// Delivery lifecycle: production → pre_delivery (to shipyard) → delivered (to
+// customer). Drives which teams can access the vessel.
+export type YachtStage = "production" | "pre_delivery" | "delivered";
 export type MemberStatus = "active" | "invited" | "suspended";
 export type YachtRole = "owner" | "captain" | "crew" | "guest";
 export type AccessStatus = "active" | "expired" | "pending";
+
+// "regular" people belong to a single group (home groupId) and can be linked
+// into any team/shipyard *within that group*. "sail-adv" people belong to the
+// global Sail ADV org and can be linked across multiple groups & shipyards.
+export type PersonKind = "regular" | "sail-adv";
 
 export interface Group {
   id: string;
@@ -47,6 +55,19 @@ export interface Member {
   name: string;
   handle: string;
   status: MemberStatus;
+  kind?: PersonKind; // undefined ⇒ regular; "sail-adv" is badged in the UI
+}
+
+// A person in the shared directory. Team membership references these by id, so
+// one person can be linked into many teams (and, for regulars, many shipyards
+// within their home group; for sail-adv, across groups).
+export interface Person {
+  id: string;
+  name: string;
+  handle: string;
+  status: MemberStatus;
+  kind: PersonKind;
+  groupId?: string; // home group for regulars; undefined for sail-adv
 }
 
 export interface Yacht {
@@ -55,8 +76,20 @@ export interface Yacht {
   code: string;
   name?: string;
   status: YachtStatus;
+  stage?: YachtStage; // delivery lifecycle; falls back to status when absent
+  shipyardDeliveryDate?: string; // ISO yyyy-mm-dd — delivered to shipyard
+  customerDeliveryDate?: string; // ISO yyyy-mm-dd — delivered to customer
   mmsi: string | null;
   lastUpdate: string;
+  assetUuid?: string; // D.gree Asset UUID — pasted in; issued by the core backend
+}
+
+// A many-to-many access link between a team and a yacht, always within the
+// same shipyard. Editable from both the team page and the yacht page.
+export interface TeamYachtLink {
+  shipyardId: string;
+  teamId: string;
+  yachtId: string;
 }
 
 export interface OwnerTeamMember {
@@ -103,6 +136,11 @@ export const shipyards: Shipyard[] = [
   { id: "van-dutch", name: "Van Dutch", groupId: "cantiere-del-pardo", users: 0, yachts: 0, teams: 3 },
   { id: "pardo-yachts", name: "Pardo Yachts", groupId: "cantiere-del-pardo", users: 0, yachts: 0, teams: 3 },
   { id: "nautor", name: "Nautor", groupId: "sanlorenzo", users: 0, yachts: 0, teams: 3 },
+  // Ungrouped brands — not yet assigned to any group. These are the pool the
+  // "Create group" flow lets you attach (groupId === "").
+  { id: "perini-navi", name: "Perini Navi", groupId: "", users: 0, yachts: 0, teams: 0 },
+  { id: "wally", name: "Wally", groupId: "", users: 0, yachts: 0, teams: 0 },
+  { id: "mangusta", name: "Mangusta", groupId: "", users: 0, yachts: 0, teams: 0 },
 ];
 
 // Group-level people (keyed by group id).
@@ -113,6 +151,34 @@ export const peopleByGroup: Record<string, GroupPerson[]> = {
     { id: "d-costa", name: "Davide Costa", handle: "@d_costa", brands: "Sanlorenzo, Bluegame", allBrands: false, status: "invited" },
   ],
 };
+
+// Shared people directory. Seeds the pool that "Create team" picks from.
+// Regulars are scoped to a home group; sail-adv people are global and can be
+// added to teams in any group/shipyard.
+export const directoryPeople: Person[] = [
+  // Sanlorenzo group-level people (also shown on the group People tab).
+  { id: "l-ferrari", name: "Luca Ferrari", handle: "@l_ferrari", status: "active", kind: "regular", groupId: "sanlorenzo" },
+  { id: "m-bruno", name: "Marta Bruno", handle: "@m_bruno", status: "active", kind: "regular", groupId: "sanlorenzo" },
+  { id: "d-costa", name: "Davide Costa", handle: "@d_costa", status: "invited", kind: "regular", groupId: "sanlorenzo" },
+  // Sanlorenzo Tech Dep members (also seeded into the tech-dep team).
+  { id: "a-franzi", name: "Alessandro Franzi", handle: "@a_franzi", status: "active", kind: "regular", groupId: "sanlorenzo" },
+  { id: "a-gatto", name: "Alberto Gatto", handle: "@a_gatto", status: "active", kind: "regular", groupId: "sanlorenzo" },
+  { id: "a-guido", name: "Andrea Guido", handle: "@a_guido", status: "active", kind: "regular", groupId: "sanlorenzo" },
+  { id: "a-mdshah", name: "Alam MDShah", handle: "@a_mdshah", status: "active", kind: "regular", groupId: "sanlorenzo" },
+  { id: "a-sansica", name: "Antonio Sansica", handle: "@a_sansica", status: "active", kind: "regular", groupId: "sanlorenzo" },
+  { id: "a-venturi", name: "Alberto Venturi", handle: "@a.venturi", status: "active", kind: "regular", groupId: "sanlorenzo" },
+  { id: "a-castagno", name: "Andrea Castagno", handle: "@a_castagno", status: "active", kind: "regular", groupId: "sanlorenzo" },
+  { id: "b-gerceker", name: "berkay gerceker", handle: "@b_gerceker", status: "invited", kind: "regular", groupId: "sanlorenzo" },
+  // A couple of regulars in other groups so their pickers aren't sail-adv-only.
+  { id: "f-romano", name: "Francesca Romano", handle: "@f_romano", status: "active", kind: "regular", groupId: "azimut-benetti" },
+  { id: "g-esposito", name: "Giorgio Esposito", handle: "@g_esposito", status: "active", kind: "regular", groupId: "cantiere-del-pardo" },
+  // Sail ADV org — global people who can span groups & shipyards.
+  { id: "sa-ricci", name: "Elena Ricci", handle: "@e_ricci", status: "active", kind: "sail-adv" },
+  { id: "sa-greco", name: "Matteo Greco", handle: "@m_greco", status: "active", kind: "sail-adv" },
+  { id: "sa-rizzo", name: "Chiara Rizzo", handle: "@c_rizzo", status: "active", kind: "sail-adv" },
+  { id: "sa-moretti", name: "Stefano Moretti", handle: "@s_moretti", status: "active", kind: "sail-adv" },
+  { id: "sa-galli", name: "Valentina Galli", handle: "@v_galli", status: "invited", kind: "sail-adv" },
+];
 
 export const sailAdvTeams: SailAdvTeam[] = [
   { id: "sail-adv-ops", name: "Fleet Operations", description: "Cross-shipyard operations desk", memberCount: 12, scope: "All groups" },
@@ -144,9 +210,9 @@ export const membersByTeam: Record<string, Member[]> = {
 export const yachtsByShipyard: Record<string, Yacht[]> = {
   sanlorenzo: [
     { id: "sd118-129", shipyardId: "sanlorenzo", code: "SD118-129", name: "UNIQUE S", status: "delivered", mmsi: "256834000", lastUpdate: "27 Jun 2026" },
-    { id: "sl50-171", shipyardId: "sanlorenzo", code: "SL50-171", name: "CONTIGO", status: "delivered", mmsi: "256962000", lastUpdate: "03 Jun 2026" },
+    { id: "sl50-171", shipyardId: "sanlorenzo", code: "SL50-171", name: "CONTIGO", status: "delivered", stage: "delivered", shipyardDeliveryDate: "2025-11-10", customerDeliveryDate: "2026-03-14", mmsi: "256962000", lastUpdate: "03 Jun 2026", assetUuid: "a3f9c1e0-7b42-4d18-9f6a-2c5e8b0d4471" },
     { id: "sp110-05", shipyardId: "sanlorenzo", code: "SP110-05", name: "SuperV", status: "delivered", mmsi: "533133096", lastUpdate: "20 May 2026" },
-    { id: "sd90-119", shipyardId: "sanlorenzo", code: "SD90-119", name: "MY SAL", status: "delivered", mmsi: "256498000", lastUpdate: "20 May 2026" },
+    { id: "sd90-119", shipyardId: "sanlorenzo", code: "SD90-119", name: "MY SAL", status: "delivered", stage: "pre_delivery", shipyardDeliveryDate: "2026-05-02", mmsi: "256498000", lastUpdate: "20 May 2026" },
     { id: "sx88-134", shipyardId: "sanlorenzo", code: "SX88-134", status: "delivered", mmsi: "256004052", lastUpdate: "20 May 2026" },
     { id: "sl200-72", shipyardId: "sanlorenzo", code: "SL200-72", status: "delivered", mmsi: "538072431", lastUpdate: "20 May 2026" },
     { id: "sl90a-877", shipyardId: "sanlorenzo", code: "SL90A-877", status: "production", mmsi: null, lastUpdate: "28 May 2026" },
@@ -155,6 +221,13 @@ export const yachtsByShipyard: Record<string, Yacht[]> = {
     { id: "sl96a-885", shipyardId: "sanlorenzo", code: "SL96A-885", status: "production", mmsi: null, lastUpdate: "20 May 2026" },
   ],
 };
+
+// Seed team↔yacht access links (Sanlorenzo Tech Dep works a few boats).
+export const teamYachtLinks: TeamYachtLink[] = [
+  { shipyardId: "sanlorenzo", teamId: "tech-dep", yachtId: "sl50-171" },
+  { shipyardId: "sanlorenzo", teamId: "tech-dep", yachtId: "sd118-129" },
+  { shipyardId: "sanlorenzo", teamId: "tech-dep", yachtId: "sp110-05" },
+];
 
 // Owner-team roster for a specific yacht (keyed by yacht id).
 export const ownerTeamByYacht: Record<string, OwnerTeamMember[]> = {
@@ -238,3 +311,52 @@ export const totals = {
 
 export const yachtLabel = (y: Pick<Yacht, "code" | "name">) =>
   y.name ? `${y.code} · ${y.name}` : y.code;
+
+// ---- delivery lifecycle --------------------------------------------------
+
+export const STAGE_ORDER: YachtStage[] = [
+  "production",
+  "pre_delivery",
+  "delivered",
+];
+
+export const STAGE_META: Record<
+  YachtStage,
+  { label: string; short: string; tone: "warn" | "brand" | "success" }
+> = {
+  production: { label: "In production", short: "In production", tone: "warn" },
+  pre_delivery: {
+    label: "Delivered to shipyard",
+    short: "Pre-delivery",
+    tone: "brand",
+  },
+  delivered: {
+    label: "Delivered to customer",
+    short: "Delivered",
+    tone: "success",
+  },
+};
+
+// Who can access the vessel at each stage (access policy shown on the yacht).
+export const STAGE_ACCESS: Record<YachtStage, string[]> = {
+  production: ["Sail ADV · Installation team"],
+  pre_delivery: ["Sail ADV", "Shipyard · Production team"],
+  delivered: ["Owner team", "Sail ADV"],
+};
+
+/** Resolve a yacht's lifecycle stage, falling back to legacy status. */
+export const yachtStage = (y: Pick<Yacht, "stage" | "status">): YachtStage =>
+  y.stage ?? (y.status === "delivered" ? "delivered" : "production");
+
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/** Format an ISO yyyy-mm-dd date as e.g. "14 Mar 2026" (no timezone math). */
+export const formatDate = (iso?: string): string => {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return `${d} ${MONTHS[m - 1]} ${y}`;
+};
