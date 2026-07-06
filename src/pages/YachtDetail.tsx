@@ -3,13 +3,15 @@ import { useParams, Navigate } from "react-router-dom";
 import { Plus, ChevronRight } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, Avatar } from "../components/ui";
+import { CreateUserDrawer, fullName } from "../components/drawers";
 import {
+  useStore,
   shipyardById,
   yachtById,
-  ownerTeamByYacht,
-  yachtLabel,
-  type YachtRole,
-} from "../data/mock";
+  ownerTeamOfYacht,
+  addOwnerTeamMember,
+} from "../store";
+import { yachtLabel, type YachtRole } from "../data/mock";
 
 const roleTone: Record<YachtRole, "brand" | "neutral" | "outline"> = {
   owner: "brand",
@@ -34,14 +36,17 @@ const ROLE_FILTERS: { id: "all" | YachtRole; label: string }[] = [
 ];
 
 export default function YachtDetail() {
+  useStore();
   const { shipyardId = "", yachtId = "" } = useParams();
   const [roleFilter, setRoleFilter] = useState<"all" | YachtRole>("all");
+
+  const [personOpen, setPersonOpen] = useState(false);
 
   const shipyard = shipyardById(shipyardId);
   const yacht = yachtById(shipyardId, yachtId);
   if (!shipyard || !yacht) return <Navigate to="/" replace />;
 
-  const team = ownerTeamByYacht[yachtId] ?? [];
+  const team = ownerTeamOfYacht(yachtId);
 
   const filteredTeam = useMemo(
     () => (roleFilter === "all" ? team : team.filter((m) => m.role === roleFilter)),
@@ -104,7 +109,7 @@ export default function YachtDetail() {
             </button>
           ))}
         </div>
-        <Button>
+        <Button onClick={() => setPersonOpen(true)}>
           <Plus className="size-4" />
           Add person
         </Button>
@@ -151,6 +156,25 @@ export default function YachtDetail() {
           {team.length} members · {roleSummary}
         </div>
       </Card>
+
+      <CreateUserDrawer
+        open={personOpen}
+        onClose={() => setPersonOpen(false)}
+        assignValue={`${yachtLabel(yacht)} · owner-team`}
+        roleOptions={[
+          { value: "owner", label: "Owner" },
+          { value: "captain", label: "Captain" },
+          { value: "crew", label: "Crew" },
+          { value: "guest", label: "Guest" },
+        ]}
+        onCreate={(r) =>
+          addOwnerTeamMember(yachtId, {
+            name: fullName(r),
+            role: r.role as YachtRole,
+            poa: false,
+          })
+        }
+      />
     </>
   );
 }

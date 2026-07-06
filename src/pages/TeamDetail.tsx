@@ -1,13 +1,17 @@
+import { useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
-import { Plus, ChevronRight, LinkIcon, ShieldCheck } from "lucide-react";
+import { Plus, ChevronRight, Link as LinkIcon, ShieldCheck } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Avatar } from "../components/ui";
+import { CreateUserDrawer, fullName } from "../components/drawers";
 import {
+  useStore,
   shipyardById,
   teamById,
-  membersByTeam,
-  type MemberStatus,
-} from "../data/mock";
+  membersInTeam,
+  addTeamMember,
+} from "../store";
+import type { MemberStatus } from "../data/mock";
 
 const statusTone: Record<MemberStatus, "success" | "brand" | "danger"> = {
   active: "success",
@@ -22,14 +26,17 @@ const statusLabel: Record<MemberStatus, string> = {
 };
 
 export default function TeamDetail() {
+  useStore();
   const { shipyardId = "", teamId = "" } = useParams();
   const navigate = useNavigate();
+
+  const [personOpen, setPersonOpen] = useState(false);
 
   const shipyard = shipyardById(shipyardId);
   const team = teamById(shipyardId, teamId);
   if (!shipyard || !team) return <Navigate to="/" replace />;
 
-  const members = membersByTeam[teamId] ?? [];
+  const members = membersInTeam(teamId);
 
   return (
     <>
@@ -44,7 +51,7 @@ export default function TeamDetail() {
         badge={<Badge tone="success">{team.memberCount} members</Badge>}
         subtitle={`${team.description} · ${shipyard.name}`}
         actions={
-          <Button>
+          <Button onClick={() => setPersonOpen(true)}>
             <Plus className="size-4" />
             Add person
           </Button>
@@ -91,6 +98,13 @@ export default function TeamDetail() {
                     </td>
                   </tr>
                 ))}
+                {members.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-5 py-8 text-center text-sm text-muted">
+                      No members yet.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
             <div className="flex items-center justify-between border-t border-line px-5 py-3 text-xs text-muted">
@@ -154,6 +168,22 @@ export default function TeamDetail() {
           </p>
         </aside>
       </div>
+
+      <CreateUserDrawer
+        open={personOpen}
+        onClose={() => setPersonOpen(false)}
+        assignValue={`${shipyard.name} · ${team.name}`}
+        roleOptions={[
+          { value: "member", label: "Member" },
+          { value: "lead", label: "Team lead" },
+        ]}
+        onCreate={(r) =>
+          addTeamMember(teamId, shipyardId, {
+            name: fullName(r),
+            status: "invited",
+          })
+        }
+      />
     </>
   );
 }

@@ -3,13 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { Plus, ChevronRight, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Tabs, Avatar } from "../components/ui";
+import { CreateGroupDrawer, CreateShipyardDrawer } from "../components/drawers";
+import { sailAdvTeams } from "../data/mock";
 import {
-  groupsWithShipyards,
-  sailAdvTeams,
-  totals,
+  useStore,
+  getGroupsWithShipyards,
+  getTotals,
   type GroupWithShipyards,
-  type Shipyard,
-} from "../data/mock";
+} from "../store";
+import type { Shipyard } from "../data/mock";
 
 function CountPill({ value, label }: { value: number; label: string }) {
   return (
@@ -22,7 +24,13 @@ function CountPill({ value, label }: { value: number; label: string }) {
   );
 }
 
-function GroupCard({ group }: { group: GroupWithShipyards }) {
+function GroupCard({
+  group,
+  onAddShipyard,
+}: {
+  group: GroupWithShipyards;
+  onAddShipyard: (groupId: string) => void;
+}) {
   const navigate = useNavigate();
   return (
     <Card className="mb-4 break-inside-avoid">
@@ -57,9 +65,15 @@ function GroupCard({ group }: { group: GroupWithShipyards }) {
             </span>
           </button>
         ))}
+        {group.shipyards.length === 0 && (
+          <div className="px-5 py-4 text-xs text-muted">No shipyards yet.</div>
+        )}
       </div>
 
-      <button className="flex w-full items-center justify-center gap-1.5 border-t border-line-soft/60 py-2.5 text-xs font-medium text-brand transition-colors hover:bg-brand/5">
+      <button
+        onClick={() => onAddShipyard(group.id)}
+        className="flex w-full items-center justify-center gap-1.5 border-t border-line-soft/60 py-2.5 text-xs font-medium text-brand transition-colors hover:bg-brand/5"
+      >
         <Plus className="size-3.5" />
         Add shipyard
       </button>
@@ -68,23 +82,28 @@ function GroupCard({ group }: { group: GroupWithShipyards }) {
 }
 
 export default function AccessManagement() {
+  useStore();
   const [tab, setTab] = useState("groups");
   const [query, setQuery] = useState("");
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [shipyardForGroup, setShipyardForGroup] = useState<string | null>(null);
+
+  const groups = getGroupsWithShipyards();
+  const totals = getTotals();
 
   const filteredGroups = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return groupsWithShipyards;
-    return groupsWithShipyards
+    if (!q) return groups;
+    return groups
       .map((g) => ({
         ...g,
         shipyards: g.shipyards.filter(
           (s) =>
-            s.name.toLowerCase().includes(q) ||
-            g.name.toLowerCase().includes(q)
+            s.name.toLowerCase().includes(q) || g.name.toLowerCase().includes(q)
         ),
       }))
-      .filter((g) => g.shipyards.length > 0);
-  }, [query]);
+      .filter((g) => g.shipyards.length > 0 || g.name.toLowerCase().includes(q));
+  }, [query, groups]);
 
   return (
     <>
@@ -115,7 +134,7 @@ export default function AccessManagement() {
                 className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
               />
             </div>
-            <Button>
+            <Button onClick={() => setGroupOpen(true)}>
               <Plus className="size-4" />
               Add Group
             </Button>
@@ -123,7 +142,11 @@ export default function AccessManagement() {
 
           <div className="gap-4 lg:columns-2">
             {filteredGroups.map((g) => (
-              <GroupCard key={g.id} group={g} />
+              <GroupCard
+                key={g.id}
+                group={g}
+                onAddShipyard={(id) => setShipyardForGroup(id)}
+              />
             ))}
           </div>
         </>
@@ -156,6 +179,13 @@ export default function AccessManagement() {
           </div>
         </>
       )}
+
+      <CreateGroupDrawer open={groupOpen} onClose={() => setGroupOpen(false)} />
+      <CreateShipyardDrawer
+        open={!!shipyardForGroup}
+        groupId={shipyardForGroup ?? undefined}
+        onClose={() => setShipyardForGroup(null)}
+      />
     </>
   );
 }

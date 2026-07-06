@@ -4,11 +4,18 @@ import { Plus, ChevronRight } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Tabs, Avatar } from "../components/ui";
 import {
+  CreateUserDrawer,
+  CreateShipyardDrawer,
+  fullName,
+} from "../components/drawers";
+import {
+  useStore,
   groupById,
   shipyardsInGroup,
   peopleInGroup,
-  type MemberStatus,
-} from "../data/mock";
+  addGroupPerson,
+} from "../store";
+import type { MemberStatus } from "../data/mock";
 
 const statusTone: Record<MemberStatus, "success" | "brand" | "danger"> = {
   active: "success",
@@ -37,8 +44,11 @@ function ShipyardStat({ value, label }: { value: number; label: string }) {
 }
 
 export default function GroupDetail() {
+  useStore();
   const { groupId = "" } = useParams();
   const [tab, setTab] = useState("people");
+  const [personOpen, setPersonOpen] = useState(false);
+  const [shipyardOpen, setShipyardOpen] = useState(false);
   const navigate = useNavigate();
 
   const group = groupById(groupId);
@@ -75,7 +85,7 @@ export default function GroupDetail() {
         <>
           <div className="mb-4 flex items-center justify-between gap-3">
             <SearchInput placeholder="Search people" />
-            <Button>
+            <Button onClick={() => setPersonOpen(true)}>
               <Plus className="size-4" />
               Add person
             </Button>
@@ -120,6 +130,13 @@ export default function GroupDetail() {
                     </td>
                   </tr>
                 ))}
+                {people.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-8 text-center text-sm text-muted">
+                      No people with group-level access yet.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </Card>
@@ -133,7 +150,7 @@ export default function GroupDetail() {
         <>
           <div className="mb-4 flex items-center justify-between gap-3">
             <SearchInput placeholder="Search shipyards" />
-            <Button>
+            <Button onClick={() => setShipyardOpen(true)}>
               <Plus className="size-4" />
               Add shipyard
             </Button>
@@ -163,6 +180,32 @@ export default function GroupDetail() {
           </div>
         </>
       )}
+
+      <CreateUserDrawer
+        open={personOpen}
+        onClose={() => setPersonOpen(false)}
+        assignLabel="Assign to"
+        assignValue={`${group.name} · all brands`}
+        roleOptions={[
+          { value: "admin", label: "Group admin" },
+          { value: "manager", label: "Manager" },
+          { value: "viewer", label: "Viewer" },
+        ]}
+        onCreate={(r) =>
+          addGroupPerson(groupId, {
+            name: fullName(r),
+            allBrands: true,
+            brands: `All ${groupShipyards.length} brands`,
+            status: "invited",
+          })
+        }
+      />
+
+      <CreateShipyardDrawer
+        open={shipyardOpen}
+        groupId={groupId}
+        onClose={() => setShipyardOpen(false)}
+      />
     </>
   );
 }
