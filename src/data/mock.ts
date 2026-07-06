@@ -19,6 +19,18 @@ export interface Shipyard {
   groupId: string;
   users: number;
   yachts: number;
+  teams: number;
+}
+
+// A person granted access at the group level, reaching one or more brands
+// (shipyards) and every yacht under them.
+export interface GroupPerson {
+  id: string;
+  name: string;
+  handle: string;
+  brands: string; // display label, e.g. "All 3 brands" or "Sanlorenzo, Bluegame"
+  allBrands: boolean;
+  status: MemberStatus;
 }
 
 export interface Team {
@@ -82,16 +94,25 @@ export const groups: Group[] = [
 ];
 
 export const shipyards: Shipyard[] = [
-  { id: "sanlorenzo", name: "Sanlorenzo", groupId: "sanlorenzo", users: 22, yachts: 43 },
-  { id: "benetti-yachts", name: "Benetti Yachts", groupId: "azimut-benetti", users: 8, yachts: 17 },
-  { id: "grand-soleil-yachts", name: "Grand Soleil Yachts", groupId: "cantiere-del-pardo", users: 0, yachts: 1 },
-  { id: "pardo-production-site", name: "Pardo Production Site", groupId: "cantiere-del-pardo", users: 0, yachts: 1 },
-  { id: "bluegame", name: "Bluegame", groupId: "sanlorenzo", users: 0, yachts: 1 },
-  { id: "triodeniz", name: "Triodeniz", groupId: "triodeniz", users: 3, yachts: 0 },
-  { id: "van-dutch", name: "Van Dutch", groupId: "cantiere-del-pardo", users: 0, yachts: 0 },
-  { id: "pardo-yachts", name: "Pardo Yachts", groupId: "cantiere-del-pardo", users: 0, yachts: 0 },
-  { id: "nautor", name: "Nautor", groupId: "sanlorenzo", users: 0, yachts: 0 },
+  { id: "sanlorenzo", name: "Sanlorenzo", groupId: "sanlorenzo", users: 22, yachts: 43, teams: 3 },
+  { id: "benetti-yachts", name: "Benetti Yachts", groupId: "azimut-benetti", users: 8, yachts: 17, teams: 3 },
+  { id: "grand-soleil-yachts", name: "Grand Soleil Yachts", groupId: "cantiere-del-pardo", users: 0, yachts: 1, teams: 3 },
+  { id: "pardo-production-site", name: "Pardo Production Site", groupId: "cantiere-del-pardo", users: 0, yachts: 1, teams: 3 },
+  { id: "bluegame", name: "Bluegame", groupId: "sanlorenzo", users: 0, yachts: 1, teams: 3 },
+  { id: "triodeniz", name: "Triodeniz", groupId: "triodeniz", users: 3, yachts: 0, teams: 3 },
+  { id: "van-dutch", name: "Van Dutch", groupId: "cantiere-del-pardo", users: 0, yachts: 0, teams: 3 },
+  { id: "pardo-yachts", name: "Pardo Yachts", groupId: "cantiere-del-pardo", users: 0, yachts: 0, teams: 3 },
+  { id: "nautor", name: "Nautor", groupId: "sanlorenzo", users: 0, yachts: 0, teams: 3 },
 ];
+
+// Group-level people (keyed by group id).
+export const peopleByGroup: Record<string, GroupPerson[]> = {
+  sanlorenzo: [
+    { id: "l-ferrari", name: "Luca Ferrari", handle: "@l_ferrari", brands: "All 3 brands", allBrands: true, status: "active" },
+    { id: "m-bruno", name: "Marta Bruno", handle: "@m_bruno", brands: "All 3 brands", allBrands: true, status: "active" },
+    { id: "d-costa", name: "Davide Costa", handle: "@d_costa", brands: "Sanlorenzo, Bluegame", allBrands: false, status: "invited" },
+  ],
+};
 
 export const sailAdvTeams: SailAdvTeam[] = [
   { id: "sail-adv-ops", name: "Fleet Operations", description: "Cross-shipyard operations desk", memberCount: 12, scope: "All groups" },
@@ -182,6 +203,26 @@ export const dataAccessByYacht: Record<string, DataAccessGrant[]> = {
 
 export const groupById = (id: string) => groups.find((g) => g.id === id);
 export const shipyardById = (id: string) => shipyards.find((s) => s.id === id);
+export const shipyardsInGroup = (groupId: string) =>
+  shipyards.filter((s) => s.groupId === groupId);
+export const peopleInGroup = (groupId: string) => peopleByGroup[groupId] ?? [];
+
+export interface GroupWithShipyards extends Group {
+  shipyards: Shipyard[];
+  yachts: number;
+  users: number;
+}
+
+// Groups joined with their shipyards + aggregate counts, for the main page.
+export const groupsWithShipyards: GroupWithShipyards[] = groups.map((g) => {
+  const inGroup = shipyardsInGroup(g.id);
+  return {
+    ...g,
+    shipyards: inGroup,
+    yachts: inGroup.reduce((n, s) => n + s.yachts, 0),
+    users: inGroup.reduce((n, s) => n + s.users, 0),
+  };
+});
 export const teamById = (shipyardId: string, teamId: string) =>
   (teamsByShipyard[shipyardId] ?? []).find((t) => t.id === teamId);
 export const yachtById = (shipyardId: string, yachtId: string) =>

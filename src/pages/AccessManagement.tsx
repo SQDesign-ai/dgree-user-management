@@ -4,30 +4,87 @@ import { Plus, ChevronRight, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Tabs, Avatar } from "../components/ui";
 import {
-  shipyards,
-  groups,
-  groupById,
+  groupsWithShipyards,
   sailAdvTeams,
   totals,
+  type GroupWithShipyards,
+  type Shipyard,
 } from "../data/mock";
 
-export default function AccessManagement() {
-  const [tab, setTab] = useState("shipyards");
-  const [query, setQuery] = useState("");
-  const [groupFilter, setGroupFilter] = useState<string>("all");
-  const navigate = useNavigate();
-
-  const filtered = useMemo(
-    () =>
-      shipyards.filter((s) => {
-        const matchesQuery = s.name
-          .toLowerCase()
-          .includes(query.trim().toLowerCase());
-        const matchesGroup = groupFilter === "all" || s.groupId === groupFilter;
-        return matchesQuery && matchesGroup;
-      }),
-    [query, groupFilter]
+function CountPill({ value, label }: { value: number; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.05] px-2 py-0.5 text-xs">
+      <span className={value > 0 ? "font-semibold text-ink-2" : "text-muted"}>
+        {value}
+      </span>
+      <span className="text-muted">{label}</span>
+    </span>
   );
+}
+
+function GroupCard({ group }: { group: GroupWithShipyards }) {
+  const navigate = useNavigate();
+  return (
+    <Card className="mb-4 break-inside-avoid">
+      <button
+        onClick={() => navigate(`/groups/${group.id}`)}
+        className="flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-hover/30"
+      >
+        <span className="flex items-center gap-2.5">
+          <span className="font-semibold text-white">{group.name} group</span>
+          <Badge tone="brand">Group</Badge>
+        </span>
+        <span className="text-xs text-muted">
+          {group.shipyards.length}{" "}
+          {group.shipyards.length === 1 ? "shipyard" : "shipyards"}
+        </span>
+      </button>
+
+      <div className="border-t border-line-soft/60">
+        {group.shipyards.map((s: Shipyard) => (
+          <button
+            key={s.id}
+            onClick={() => navigate(`/shipyards/${s.id}`)}
+            className="flex w-full items-center justify-between gap-3 border-b border-line-soft/40 px-5 py-3 text-left transition-colors last:border-0 hover:bg-hover/40"
+          >
+            <span className="min-w-0 truncate font-medium text-white">
+              {s.name}
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              <CountPill value={s.yachts} label="yachts" />
+              <CountPill value={s.teams} label="teams" />
+              <ChevronRight className="size-4 text-muted" />
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <button className="flex w-full items-center justify-center gap-1.5 border-t border-line-soft/60 py-2.5 text-xs font-medium text-brand transition-colors hover:bg-brand/5">
+        <Plus className="size-3.5" />
+        Add shipyard
+      </button>
+    </Card>
+  );
+}
+
+export default function AccessManagement() {
+  const [tab, setTab] = useState("groups");
+  const [query, setQuery] = useState("");
+
+  const filteredGroups = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return groupsWithShipyards;
+    return groupsWithShipyards
+      .map((g) => ({
+        ...g,
+        shipyards: g.shipyards.filter(
+          (s) =>
+            s.name.toLowerCase().includes(q) ||
+            g.name.toLowerCase().includes(q)
+        ),
+      }))
+      .filter((g) => g.shipyards.length > 0);
+  }, [query]);
 
   return (
     <>
@@ -39,7 +96,7 @@ export default function AccessManagement() {
       <div className="mb-5">
         <Tabs
           tabs={[
-            { id: "shipyards", label: "Shipyards" },
+            { id: "groups", label: "Groups & Shipyards" },
             { id: "sail-adv", label: "Sail ADV teams" },
           ]}
           active={tab}
@@ -47,98 +104,28 @@ export default function AccessManagement() {
         />
       </div>
 
-      {tab === "shipyards" ? (
+      {tab === "groups" ? (
         <>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <select
-                value={groupFilter}
-                onChange={(e) => setGroupFilter(e.target.value)}
-                className="rounded-lg border border-line bg-surface-3 px-3 py-2 text-sm text-ink-2 outline-none focus:border-brand/60"
-              >
-                <option value="all">All groups</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
+            <div className="w-full max-w-xs">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search shipyards"
+                className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
+              />
             </div>
-            <div className="flex flex-1 items-center justify-end gap-3">
-              <div className="w-full max-w-xs">
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search shipyards"
-                  className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
-                />
-              </div>
-              <Button>
-                <Plus className="size-4" />
-                Add shipyard
-              </Button>
-            </div>
+            <Button>
+              <Plus className="size-4" />
+              Add Group
+            </Button>
           </div>
 
-          <Card>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted-2">
-                  <th className="px-5 py-3 font-medium">Shipyard</th>
-                  <th className="px-5 py-3 font-medium">Group</th>
-                  <th className="px-5 py-3 font-medium">Users</th>
-                  <th className="px-5 py-3 font-medium">Yachts</th>
-                  <th className="w-10 px-5 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((s) => {
-                  const group = groupById(s.groupId);
-                  return (
-                    <tr
-                      key={s.id}
-                      onClick={() => navigate(`/shipyards/${s.id}`)}
-                      className="cursor-pointer border-b border-line-soft/60 transition-colors last:border-0 hover:bg-hover/40"
-                    >
-                      <td className="px-5 py-3.5 font-medium text-white">
-                        {s.name}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {group && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/groups/${group.id}`);
-                            }}
-                          >
-                            <Badge tone="outline">{group.name}</Badge>
-                          </button>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="inline-flex items-center gap-2 text-ink-2">
-                          <span
-                            className={`size-1.5 rounded-full ${
-                              s.users > 0 ? "bg-success" : "bg-muted"
-                            }`}
-                          />
-                          {s.users}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-ink-2">{s.yachts}</td>
-                      <td className="px-5 py-3.5 text-right text-muted">
-                        <ChevronRight className="ml-auto size-4" />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <div className="flex items-center justify-between border-t border-line px-5 py-3 text-xs text-muted">
-              <span>{filtered.length} shipyards</span>
-              <span>Across {totals.groups} groups</span>
-            </div>
-          </Card>
+          <div className="gap-4 lg:columns-2">
+            {filteredGroups.map((g) => (
+              <GroupCard key={g.id} group={g} />
+            ))}
+          </div>
         </>
       ) : (
         <>

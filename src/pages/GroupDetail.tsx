@@ -2,19 +2,50 @@ import { useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Plus, ChevronRight } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
-import { Badge, Button, Card, SearchInput, Tabs } from "../components/ui";
-import { groupById, shipyards } from "../data/mock";
+import { Badge, Button, Card, SearchInput, Tabs, Avatar } from "../components/ui";
+import {
+  groupById,
+  shipyardsInGroup,
+  peopleInGroup,
+  type MemberStatus,
+} from "../data/mock";
+
+const statusTone: Record<MemberStatus, "success" | "brand" | "danger"> = {
+  active: "success",
+  invited: "brand",
+  suspended: "danger",
+};
+const statusLabel: Record<MemberStatus, string> = {
+  active: "Active",
+  invited: "Invited",
+  suspended: "Suspended",
+};
+
+function ShipyardStat({ value, label }: { value: number; label: string }) {
+  return (
+    <div>
+      <div
+        className={`text-2xl font-bold ${
+          value > 0 ? "text-white" : "text-muted"
+        }`}
+      >
+        {value}
+      </div>
+      <div className="text-xs text-muted">{label}</div>
+    </div>
+  );
+}
 
 export default function GroupDetail() {
   const { groupId = "" } = useParams();
-  const [tab, setTab] = useState("shipyards");
+  const [tab, setTab] = useState("people");
   const navigate = useNavigate();
 
   const group = groupById(groupId);
   if (!group) return <Navigate to="/" replace />;
 
-  const groupShipyards = shipyards.filter((s) => s.groupId === groupId);
-  const totalUsers = groupShipyards.reduce((n, s) => n + s.users, 0);
+  const groupShipyards = shipyardsInGroup(groupId);
+  const people = peopleInGroup(groupId);
   const totalYachts = groupShipyards.reduce((n, s) => n + s.yachts, 0);
 
   return (
@@ -22,67 +53,69 @@ export default function GroupDetail() {
       <PageHeader
         crumbs={[
           { label: "Access management", to: "/" },
-          { label: "Groups" },
+          { label: `${group.name} Group` },
         ]}
         title={group.name}
         badge={<Badge tone="brand">Group</Badge>}
-        subtitle={`${groupShipyards.length} shipyards · ${totalUsers} users · ${totalYachts} yachts`}
-        actions={
-          <Button variant="secondary">
-            <Plus className="size-4" />
-            Add shipyard
-          </Button>
-        }
+        subtitle={`${groupShipyards.length} shipyards · ${totalYachts} yachts`}
       />
 
       <div className="mb-5">
         <Tabs
           tabs={[
+            { id: "people", label: "People" },
             { id: "shipyards", label: "Shipyards" },
-            { id: "settings", label: "Group settings" },
           ]}
           active={tab}
           onChange={setTab}
         />
       </div>
 
-      {tab === "shipyards" ? (
+      {tab === "people" ? (
         <>
-          <div className="mb-4">
-            <SearchInput placeholder="Search shipyards" />
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <SearchInput placeholder="Search people" />
+            <Button>
+              <Plus className="size-4" />
+              Add person
+            </Button>
           </div>
           <Card>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted-2">
-                  <th className="px-5 py-3 font-medium">Shipyard</th>
-                  <th className="px-5 py-3 font-medium">Users</th>
-                  <th className="px-5 py-3 font-medium">Yachts</th>
+                  <th className="px-5 py-3 font-medium">Person</th>
+                  <th className="px-5 py-3 font-medium">Access (brands)</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
                   <th className="w-10 px-5 py-3" />
                 </tr>
               </thead>
               <tbody>
-                {groupShipyards.map((s) => (
+                {people.map((p) => (
                   <tr
-                    key={s.id}
-                    onClick={() => navigate(`/shipyards/${s.id}`)}
+                    key={p.id}
                     className="cursor-pointer border-b border-line-soft/60 transition-colors last:border-0 hover:bg-hover/40"
                   >
-                    <td className="px-5 py-3.5 font-medium text-white">
-                      {s.name}
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={p.name} />
+                        <div className="leading-tight">
+                          <div className="font-medium text-white">{p.name}</div>
+                          <div className="text-xs text-ink-4">{p.handle}</div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="inline-flex items-center gap-2 text-ink-2">
-                        <span
-                          className={`size-1.5 rounded-full ${
-                            s.users > 0 ? "bg-success" : "bg-muted"
-                          }`}
-                        />
-                        {s.users}
-                      </span>
+                    <td className="px-5 py-3">
+                      <Badge tone={p.allBrands ? "success" : "outline"} dot>
+                        {p.brands}
+                      </Badge>
                     </td>
-                    <td className="px-5 py-3.5 text-ink-2">{s.yachts}</td>
-                    <td className="px-5 py-3.5 text-right text-muted">
+                    <td className="px-5 py-3">
+                      <Badge tone={statusTone[p.status]} dot>
+                        {statusLabel[p.status]}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-3 text-right text-muted">
                       <ChevronRight className="ml-auto size-4" />
                     </td>
                   </tr>
@@ -90,28 +123,45 @@ export default function GroupDetail() {
               </tbody>
             </table>
           </Card>
+          <p className="mt-3 text-xs leading-relaxed text-muted">
+            People here have group-level access — reaching the brands shown and
+            every yacht under them. Grant all brands (the whole group) or a
+            subset.
+          </p>
         </>
       ) : (
-        <Card className="p-6">
-          <h3 className="text-sm font-semibold text-white">Group settings</h3>
-          <p className="mt-1 max-w-lg text-sm text-ink-4">
-            Group-level policies apply to every shipyard below. Changes here
-            cascade to all {groupShipyards.length} shipyards in {group.name}.
-          </p>
-          <dl className="mt-5 grid max-w-lg grid-cols-1 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2">
-            {[
-              ["Default data retention", "12 months"],
-              ["Owner consent required", "Yes"],
-              ["Auto-access on delivery", "+1 year"],
-              ["Third-party sharing", "Whitelist only"],
-            ].map(([k, v]) => (
-              <div key={k} className="bg-surface px-4 py-3">
-                <dt className="text-xs text-muted">{k}</dt>
-                <dd className="mt-0.5 text-sm font-medium text-ink-2">{v}</dd>
-              </div>
+        <>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <SearchInput placeholder="Search shipyards" />
+            <Button>
+              <Plus className="size-4" />
+              Add shipyard
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {groupShipyards.map((s) => (
+              <Card
+                key={s.id}
+                className="cursor-pointer p-5 transition-colors hover:bg-hover/30"
+              >
+                <button
+                  onClick={() => navigate(`/shipyards/${s.id}`)}
+                  className="w-full text-left"
+                >
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="font-semibold text-white">{s.name}</span>
+                    <ChevronRight className="size-4 text-muted" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <ShipyardStat value={s.yachts} label="Yachts" />
+                    <ShipyardStat value={s.teams} label="Teams" />
+                    <ShipyardStat value={s.users} label="Users" />
+                  </div>
+                </button>
+              </Card>
             ))}
-          </dl>
-        </Card>
+          </div>
+        </>
       )}
     </>
   );
