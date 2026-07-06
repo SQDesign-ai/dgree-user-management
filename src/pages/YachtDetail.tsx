@@ -1,6 +1,6 @@
-import { useMemo, useState, Fragment } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
-import { Plus, ChevronRight, Check, Lock, ShieldCheck, ArrowRight } from "lucide-react";
+import { Plus, ChevronRight, Lock, ShieldCheck } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, Avatar, StageBadge } from "../components/ui";
 import {
@@ -17,14 +17,15 @@ import {
   teamsForYacht,
   addOwnerTeamMember,
   setYachtStage,
+  setYachtAssetUuid,
 } from "../store";
 import {
   yachtLabel,
   yachtStage,
-  formatDate,
+  formatStamp,
+  stageAccessLabels,
   STAGE_ORDER,
   STAGE_META,
-  STAGE_ACCESS,
   type Yacht,
   type YachtStage,
   type YachtRole,
@@ -32,14 +33,12 @@ import {
 
 const roleTone: Record<YachtRole, "brand" | "neutral" | "outline"> = {
   owner: "brand",
-  captain: "neutral",
   crew: "outline",
   guest: "outline",
 };
 
 const roleLabel: Record<YachtRole, string> = {
   owner: "Owner",
-  captain: "Captain",
   crew: "Crew",
   guest: "Guest",
 };
@@ -47,20 +46,14 @@ const roleLabel: Record<YachtRole, string> = {
 const ROLE_FILTERS: { id: "all" | YachtRole; label: string }[] = [
   { id: "all", label: "All" },
   { id: "owner", label: "Owner" },
-  { id: "captain", label: "Captain" },
   { id: "crew", label: "Crew" },
   { id: "guest", label: "Guest" },
 ];
 
-function stageDate(y: Yacht, s: YachtStage): string | undefined {
-  if (s === "pre_delivery") return y.shipyardDeliveryDate;
-  if (s === "delivered") return y.customerDeliveryDate;
-  return undefined;
-}
-
 /**
- * Delivery lifecycle + access policy. Shows the stage timeline alongside the
- * teams that can see the vessel at the current stage, with buttons to advance.
+ * Delivery lifecycle card: delivery timestamps on the left, and the control
+ * that moves the yacht to the next stage prominently in the middle. The access
+ * policy and UUID render as separate cards beside it.
  */
 function DeliveryCard({
   shipyardId,
@@ -75,111 +68,69 @@ function DeliveryCard({
   const prev = STAGE_ORDER[idx - 1] as YachtStage | undefined;
   const advanceLabel =
     next === "pre_delivery"
-      ? "Mark delivered to shipyard"
+      ? "Deliver to shipyard"
       : next === "delivered"
-      ? "Mark delivered to customer"
+      ? "Deliver to customer"
       : null;
 
   return (
-    <Card className="mb-6 p-5">
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        {/* Stage timeline */}
-        <div>
-          <div className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-muted-2">
+    <Card className="p-5">
+      {/* Header: status + the control that moves the yacht along */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-2">
             Delivery status
+          </span>
+          <StageBadge stage={stage} />
+        </div>
+        <div className="flex items-center gap-4">
+          {prev && (
+            <button
+              onClick={() => setYachtStage(shipyardId, yacht.id, prev)}
+              className="text-xs font-medium text-muted transition-colors hover:text-ink-3"
+            >
+              ↩ revert to {STAGE_META[prev].short}
+            </button>
+          )}
+          {advanceLabel && next ? (
+            <Button
+              onClick={() => setYachtStage(shipyardId, yacht.id, next)}
+              className="px-6 py-2.5"
+            >
+              {advanceLabel}
+            </Button>
+          ) : (
+            <span className="text-sm font-semibold text-success">
+              Fully delivered
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Delivery timestamps */}
+      <div className="space-y-4">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-2">
+            Customer delivery
           </div>
-          <div className="flex items-start">
-            {STAGE_ORDER.map((s, i) => {
-              const done = i < idx;
-              const current = i === idx;
-              const d = stageDate(yacht, s);
-              return (
-                <Fragment key={s}>
-                  {i > 0 && (
-                    <div
-                      className={`mt-3.5 h-0.5 flex-1 rounded ${
-                        i <= idx ? "bg-brand/60" : "bg-line"
-                      }`}
-                    />
-                  )}
-                  <div className="flex w-28 shrink-0 flex-col items-center gap-1.5 text-center">
-                    <span
-                      className={`flex size-8 items-center justify-center rounded-full text-xs font-bold ${
-                        current
-                          ? "bg-brand text-white ring-4 ring-brand/20"
-                          : done
-                          ? "bg-brand text-white"
-                          : "border border-line bg-white/[0.04] text-muted"
-                      }`}
-                    >
-                      {done ? <Check className="size-4" strokeWidth={3} /> : i + 1}
-                    </span>
-                    <span
-                      className={`text-xs font-medium leading-tight ${
-                        current || done ? "text-white" : "text-muted"
-                      }`}
-                    >
-                      {STAGE_META[s].label}
-                    </span>
-                    <span className="text-[11px] text-ink-4">
-                      {s === "production"
-                        ? "Initial"
-                        : d
-                        ? formatDate(d)
-                        : "—"}
-                    </span>
-                  </div>
-                </Fragment>
-              );
-            })}
+          <div
+            className={`mt-0.5 text-lg font-semibold ${
+              idx >= 2 ? "text-white" : "text-muted"
+            }`}
+          >
+            {idx >= 2 ? formatStamp(yacht.customerDeliveryDate) : "Pending"}
           </div>
         </div>
-
-        {/* Access policy at the current stage */}
-        <div className="lg:border-l lg:border-line lg:pl-6">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-2">
-              Who can access now
-            </span>
-            <StageBadge stage={stage} />
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-2">
+            Shipyard delivery
           </div>
-          <div className="flex flex-wrap gap-2">
-            {STAGE_ACCESS[stage].map((label) => (
-              <Badge key={label} tone="brand">
-                {label}
-              </Badge>
-            ))}
-          </div>
-          {stage === "delivered" && (
-            <p className="mt-2.5 flex gap-2 text-xs leading-relaxed text-muted">
-              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-nav-section" />
-              Until the owner&apos;s PoA enables 3rd-party data sharing.
-            </p>
-          )}
-
-          <div className="mt-4 flex flex-col gap-2">
-            {advanceLabel && next && (
-              <Button
-                onClick={() => setYachtStage(shipyardId, yacht.id, next)}
-                className="justify-center"
-              >
-                {advanceLabel}
-                <ArrowRight className="size-4" />
-              </Button>
-            )}
-            {!next && (
-              <div className="rounded-lg border border-success/25 bg-success/10 px-3 py-2 text-center text-xs font-medium text-success">
-                Fully delivered to customer
-              </div>
-            )}
-            {prev && (
-              <button
-                onClick={() => setYachtStage(shipyardId, yacht.id, prev)}
-                className="text-center text-xs font-medium text-muted transition-colors hover:text-ink-3"
-              >
-                ↩ Revert to {STAGE_META[prev].short}
-              </button>
-            )}
+          <div
+            className={`mt-0.5 text-lg font-semibold ${
+              idx >= 1 ? "text-white" : "text-muted"
+            }`}
+          >
+            {idx >= 1 ? formatStamp(yacht.shipyardDeliveryDate) : "Pending"}
           </div>
         </div>
       </div>
@@ -216,7 +167,7 @@ export default function YachtDetail() {
       acc[m.role] = (acc[m.role] ?? 0) + 1;
       return acc;
     }, {});
-    return (["owner", "captain", "crew", "guest"] as YachtRole[])
+    return (["owner", "crew", "guest"] as YachtRole[])
       .filter((r) => counts[r])
       .map((r) => `${counts[r]} ${roleLabel[r]}`)
       .join(", ");
@@ -238,38 +189,56 @@ export default function YachtDetail() {
         subtitle={yacht.mmsi ? `MMSI ${yacht.mmsi}` : "MMSI not assigned"}
       />
 
-      <DeliveryCard shipyardId={shipyardId} yacht={yacht} />
+      <div className="mb-6 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <DeliveryCard shipyardId={shipyardId} yacht={yacht} />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
-        <Card className="p-4">
-          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-2">
-            D.gree Asset UUID
-          </div>
-          {yacht.assetUuid ? (
-            <div className="break-all font-mono text-sm text-ink-2">
-              {yacht.assetUuid}
+        <div className="grid gap-4">
+          {/* Asset UUID (editable) + bound status */}
+          <Card className="p-4">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label
+                htmlFor="asset-uuid"
+                className="text-[11px] font-semibold uppercase tracking-wider text-muted-2"
+              >
+                D.gree Asset UUID
+              </label>
+              {yacht.assetUuid ? (
+                <Badge tone="success">Bound</Badge>
+              ) : (
+                <Badge tone="neutral">Unbound</Badge>
+              )}
             </div>
-          ) : (
-            <div className="text-sm text-muted">
-              Not bound — paste the core UUID when editing this yacht.
-            </div>
-          )}
-        </Card>
+            <input
+              id="asset-uuid"
+              key={yachtId}
+              defaultValue={yacht.assetUuid ?? ""}
+              onBlur={(e) =>
+                setYachtAssetUuid(shipyardId, yachtId, e.target.value)
+              }
+              placeholder="Paste the UUID issued by D.gree core"
+              className="w-full rounded-lg border border-line bg-[#0e2149] px-3 py-2 font-mono text-sm text-ink-2 placeholder:font-sans placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
+            />
+          </Card>
 
-        <Card className="p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-2">
-              Teams with access ({accessTeams.length})
+          {/* Teams with access — stage policy chips + any assigned teams */}
+          <Card className="p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-2">
+                Teams with access
+              </div>
+              <button
+                onClick={() => setTeamsOpen(true)}
+                className="text-xs font-medium text-brand hover:text-brand-hover"
+              >
+                Assign
+              </button>
             </div>
-            <button
-              onClick={() => setTeamsOpen(true)}
-              className="text-xs font-medium text-brand hover:text-brand-hover"
-            >
-              Assign
-            </button>
-          </div>
-          {accessTeams.length ? (
             <div className="flex flex-wrap gap-2">
+              {stageAccessLabels(stage, shipyard.name).map((label) => (
+                <Badge key={label} tone="brand">
+                  {label}
+                </Badge>
+              ))}
               {accessTeams.map((t) => (
                 <button
                   key={t.id}
@@ -277,14 +246,23 @@ export default function YachtDetail() {
                     navigate(`/shipyards/${shipyardId}/teams/${t.id}`)
                   }
                 >
-                  <Badge tone="brand">{t.name}</Badge>
+                  <Badge tone="neutral">{t.name}</Badge>
                 </button>
               ))}
             </div>
-          ) : (
-            <div className="text-sm text-muted">No teams linked yet.</div>
-          )}
-        </Card>
+            {stage === "delivered" ? (
+              <p className="mt-2.5 flex gap-2 text-xs leading-relaxed text-muted">
+                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-nav-section" />
+                Until the owner&apos;s PoA enables 3rd-party data sharing.
+              </p>
+            ) : (
+              <p className="mt-2.5 text-xs leading-relaxed text-muted">
+                Owner-team is created once the yacht is delivered to the
+                customer.
+              </p>
+            )}
+          </Card>
+        </div>
       </div>
 
       <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-2">
@@ -379,7 +357,6 @@ export default function YachtDetail() {
         assignValue={`${yachtLabel(yacht)} · owner-team`}
         roleOptions={[
           { value: "owner", label: "Owner" },
-          { value: "captain", label: "Captain" },
           { value: "crew", label: "Crew" },
           { value: "guest", label: "Guest" },
         ]}

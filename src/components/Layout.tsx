@@ -70,7 +70,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
 
 function Sidebar() {
   return (
-    <aside className="flex w-[236px] shrink-0 flex-col gap-1 bg-nav p-4">
+    <aside className="flex w-[236px] shrink-0 flex-col gap-1 rounded-xl bg-nav p-4">
       <div className="pb-4 pt-1">
         <Logo />
       </div>

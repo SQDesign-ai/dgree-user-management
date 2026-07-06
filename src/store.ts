@@ -65,7 +65,7 @@ function seededState(): State {
 // data shape changes. Clear it from the UI via resetStore().
 
 const STORAGE_KEY = "dgree.access.v1";
-const STORAGE_VERSION = 4;
+const STORAGE_VERSION = 7;
 
 function loadState(): State {
   try {
@@ -391,6 +391,7 @@ export function addYacht(
   const id = uniqueId(slugify(input.code), (i) => !!yachtById(shipyardId, i));
   const mmsi = input.mmsi?.trim() || null;
   const stage = input.stage ?? "production";
+  const today = new Date().toISOString();
   const list = (state.yachtsByShipyard[shipyardId] ??= []);
   list.push({
     id,
@@ -399,6 +400,7 @@ export function addYacht(
     name: input.name?.trim() || undefined,
     status: stage === "production" ? "production" : "delivered",
     stage,
+    productionDate: today,
     shipyardDeliveryDate: input.shipyardDeliveryDate || undefined,
     customerDeliveryDate: input.customerDeliveryDate || undefined,
     mmsi,
@@ -409,6 +411,18 @@ export function addYacht(
   if (sy) sy.yachts += 1;
   emit();
   return id;
+}
+
+/** Set (or clear) a yacht's D.gree Asset UUID — pasted from the core backend. */
+export function setYachtAssetUuid(
+  shipyardId: string,
+  yachtId: string,
+  uuid: string
+) {
+  const y = yachtById(shipyardId, yachtId);
+  if (!y) return;
+  y.assetUuid = uuid.trim() || undefined;
+  emit();
 }
 
 /**
@@ -423,10 +437,11 @@ export function setYachtStage(
 ) {
   const y = yachtById(shipyardId, yachtId);
   if (!y) return;
-  const stamp = date || new Date().toISOString().slice(0, 10);
+  const stamp = date || new Date().toISOString();
   y.stage = stage;
   y.status = stage === "production" ? "production" : "delivered";
   if (stage === "production") {
+    y.productionDate = y.productionDate || stamp;
     y.shipyardDeliveryDate = undefined;
     y.customerDeliveryDate = undefined;
   } else if (stage === "pre_delivery") {

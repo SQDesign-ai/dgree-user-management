@@ -815,4 +815,4 @@ export const fullName = (r: CreateUserResult) =>
   [r.firstName, r.surname].filter(Boolean).join(" ").trim();
 
 export const roleName = (r: YachtRole) =>
-  ({ owner: "Owner", captain: "Captain", crew: "Crew", guest: "Guest" }[r]);
+  ({ owner: "Owner", crew: "Crew", guest: "Guest" }[r]);

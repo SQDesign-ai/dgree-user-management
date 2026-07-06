@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
-import { Plus, ChevronRight, ChevronLeft } from "lucide-react";
+import { Plus, ChevronRight, ChevronLeft, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
-import { Badge, Button, Card, SearchInput, Tabs, StageBadge } from "../components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  SearchInput,
+  Tabs,
+  StageBadge,
+  Avatar,
+} from "../components/ui";
 import { CreateTeamDrawer, CreateYachtDrawer } from "../components/drawers";
 import {
   useStore,
@@ -11,7 +19,7 @@ import {
   teamsInShipyard,
   yachtsInShipyard,
 } from "../store";
-import { yachtLabel, yachtStage } from "../data/mock";
+import { yachtLabel, yachtStage, formatStamp } from "../data/mock";
 import { FEATURES } from "../config";
 
 export default function ShipyardDetail() {
@@ -68,55 +76,42 @@ export default function ShipyardDetail() {
               Create team
             </Button>
           </div>
-          <Card>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted-2">
-                  <th className="px-5 py-3 font-medium">Team</th>
-                  <th className="px-5 py-3 font-medium">Members</th>
-                  <th className="px-5 py-3 font-medium">Assigned boats</th>
-                  <th className="w-10 px-5 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {teams.map((t) => (
-                  <tr
-                    key={t.id}
+          {teams.length === 0 ? (
+            <Card className="p-8 text-center text-sm text-muted">
+              No teams yet.
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {teams.map((t) => (
+                <Card
+                  key={t.id}
+                  className="cursor-pointer p-5 transition-colors hover:bg-hover/30"
+                >
+                  <button
                     onClick={() =>
                       navigate(`/shipyards/${shipyardId}/teams/${t.id}`)
                     }
-                    className="cursor-pointer border-b border-line-soft/60 transition-colors last:border-0 hover:bg-hover/40"
+                    className="w-full text-left"
                   >
-                    <td className="px-5 py-4">
-                      <div className="font-semibold text-white">{t.name}</div>
-                      <div className="text-xs text-ink-4">{t.description}</div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center gap-2 text-ink-2">
-                        <span
-                          className={`size-1.5 rounded-full ${
-                            t.memberCount > 0 ? "bg-success" : "bg-muted"
-                          }`}
-                        />
+                    <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-brand/15 text-brand">
+                      <Users className="size-5" />
+                    </div>
+                    <div className="font-semibold text-white">{t.name}</div>
+                    <div className="mt-0.5 text-sm text-ink-4">
+                      {t.description}
+                    </div>
+                    <div className="mt-4 flex items-center justify-between border-t border-line-soft/60 pt-3">
+                      <Badge tone="brand">{t.assignedBoats} boats</Badge>
+                      <span className="flex items-center gap-1.5 text-xs text-ink-4">
+                        <Avatar name={t.name} size={18} />
                         {t.memberCount} members
                       </span>
-                    </td>
-                    <td className="px-5 py-4 text-ink-2">{t.assignedBoats}</td>
-                    <td className="px-5 py-4 text-right text-muted">
-                      <ChevronRight className="ml-auto size-4" />
-                    </td>
-                  </tr>
-                ))}
-                {teams.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-5 py-8 text-center text-sm text-muted">
-                      No teams yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </Card>
+                    </div>
+                  </button>
+                </Card>
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -135,8 +130,9 @@ export default function ShipyardDetail() {
                 <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted-2">
                   <th className="px-5 py-3 font-medium">Yacht</th>
                   <th className="px-5 py-3 font-medium">Status</th>
-                  <th className="px-5 py-3 font-medium">MMSI</th>
                   <th className="px-5 py-3 font-medium">Last update</th>
+                  <th className="px-5 py-3 font-medium">Shipyard delivery</th>
+                  <th className="px-5 py-3 font-medium">Customer delivery</th>
                   <th className="w-10 px-5 py-3" />
                 </tr>
               </thead>
@@ -155,8 +151,17 @@ export default function ShipyardDetail() {
                     <td className="px-5 py-4">
                       <StageBadge stage={yachtStage(y)} />
                     </td>
-                    <td className="px-5 py-4 text-ink-2">{y.mmsi ?? "—"}</td>
                     <td className="px-5 py-4 text-ink-2">{y.lastUpdate}</td>
+                    <td className="px-5 py-4 text-ink-2">
+                      {y.shipyardDeliveryDate
+                        ? formatStamp(y.shipyardDeliveryDate)
+                        : "—"}
+                    </td>
+                    <td className="px-5 py-4 text-ink-2">
+                      {y.customerDeliveryDate
+                        ? formatStamp(y.customerDeliveryDate)
+                        : "—"}
+                    </td>
                     <td className="px-5 py-4 text-right text-muted">
                       <ChevronRight className="ml-auto size-4" />
                     </td>
@@ -164,7 +169,7 @@ export default function ShipyardDetail() {
                 ))}
                 {yachts.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-5 py-8 text-center text-sm text-muted">
+                    <td colSpan={6} className="px-5 py-8 text-center text-sm text-muted">
                       No yachts yet.
                     </td>
                   </tr>

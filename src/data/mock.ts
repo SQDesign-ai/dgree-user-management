@@ -8,7 +8,8 @@ export type YachtStatus = "delivered" | "production";
 // customer). Drives which teams can access the vessel.
 export type YachtStage = "production" | "pre_delivery" | "delivered";
 export type MemberStatus = "active" | "invited" | "suspended";
-export type YachtRole = "owner" | "captain" | "crew" | "guest";
+// The owner-team has three departments.
+export type YachtRole = "owner" | "crew" | "guest";
 export type AccessStatus = "active" | "expired" | "pending";
 
 // "regular" people belong to a single group (home groupId) and can be linked
@@ -77,6 +78,7 @@ export interface Yacht {
   name?: string;
   status: YachtStatus;
   stage?: YachtStage; // delivery lifecycle; falls back to status when absent
+  productionDate?: string; // ISO yyyy-mm-dd — entered production
   shipyardDeliveryDate?: string; // ISO yyyy-mm-dd — delivered to shipyard
   customerDeliveryDate?: string; // ISO yyyy-mm-dd — delivered to customer
   mmsi: string | null;
@@ -209,13 +211,13 @@ export const membersByTeam: Record<string, Member[]> = {
 
 export const yachtsByShipyard: Record<string, Yacht[]> = {
   sanlorenzo: [
-    { id: "sd118-129", shipyardId: "sanlorenzo", code: "SD118-129", name: "UNIQUE S", status: "delivered", mmsi: "256834000", lastUpdate: "27 Jun 2026" },
-    { id: "sl50-171", shipyardId: "sanlorenzo", code: "SL50-171", name: "CONTIGO", status: "delivered", stage: "delivered", shipyardDeliveryDate: "2025-11-10", customerDeliveryDate: "2026-03-14", mmsi: "256962000", lastUpdate: "03 Jun 2026", assetUuid: "a3f9c1e0-7b42-4d18-9f6a-2c5e8b0d4471" },
-    { id: "sp110-05", shipyardId: "sanlorenzo", code: "SP110-05", name: "SuperV", status: "delivered", mmsi: "533133096", lastUpdate: "20 May 2026" },
-    { id: "sd90-119", shipyardId: "sanlorenzo", code: "SD90-119", name: "MY SAL", status: "delivered", stage: "pre_delivery", shipyardDeliveryDate: "2026-05-02", mmsi: "256498000", lastUpdate: "20 May 2026" },
-    { id: "sx88-134", shipyardId: "sanlorenzo", code: "SX88-134", status: "delivered", mmsi: "256004052", lastUpdate: "20 May 2026" },
-    { id: "sl200-72", shipyardId: "sanlorenzo", code: "SL200-72", status: "delivered", mmsi: "538072431", lastUpdate: "20 May 2026" },
-    { id: "sl90a-877", shipyardId: "sanlorenzo", code: "SL90A-877", status: "production", mmsi: null, lastUpdate: "28 May 2026" },
+    { id: "sd118-129", shipyardId: "sanlorenzo", code: "SD118-129", name: "UNIQUE S", status: "delivered", stage: "delivered", productionDate: "2024-04-15", shipyardDeliveryDate: "2025-09-20T09:14:32Z", customerDeliveryDate: "2026-06-27T15:42:08Z", mmsi: "256834000", lastUpdate: "27 Jun 2026" },
+    { id: "sl50-171", shipyardId: "sanlorenzo", code: "SL50-171", name: "CONTIGO", status: "delivered", stage: "delivered", productionDate: "2024-09-02", shipyardDeliveryDate: "2025-11-10T11:05:47Z", customerDeliveryDate: "2026-03-14T14:20:11Z", mmsi: "256962000", lastUpdate: "03 Jun 2026", assetUuid: "a3f9c1e0-7b42-4d18-9f6a-2c5e8b0d4471" },
+    { id: "sp110-05", shipyardId: "sanlorenzo", code: "SP110-05", name: "SuperV", status: "delivered", stage: "delivered", productionDate: "2024-01-10", shipyardDeliveryDate: "2025-07-04T08:30:15Z", customerDeliveryDate: "2026-05-20T16:12:45Z", mmsi: "533133096", lastUpdate: "20 May 2026" },
+    { id: "sd90-119", shipyardId: "sanlorenzo", code: "SD90-119", name: "MY SAL", status: "delivered", stage: "pre_delivery", productionDate: "2025-06-18", shipyardDeliveryDate: "2026-05-02T10:15:27Z", mmsi: "256498000", lastUpdate: "20 May 2026" },
+    { id: "sx88-134", shipyardId: "sanlorenzo", code: "SX88-134", status: "delivered", stage: "delivered", productionDate: "2024-03-05", shipyardDeliveryDate: "2025-10-12T10:45:22Z", customerDeliveryDate: "2026-05-18T13:05:09Z", mmsi: "256004052", lastUpdate: "20 May 2026" },
+    { id: "sl200-72", shipyardId: "sanlorenzo", code: "SL200-72", status: "delivered", stage: "delivered", productionDate: "2023-11-22", shipyardDeliveryDate: "2025-06-30T09:00:03Z", customerDeliveryDate: "2026-05-05T17:33:50Z", mmsi: "538072431", lastUpdate: "20 May 2026" },
+    { id: "sl90a-877", shipyardId: "sanlorenzo", code: "SL90A-877", status: "production", stage: "production", productionDate: "2026-02-14", mmsi: null, lastUpdate: "28 May 2026" },
     { id: "sp92-16", shipyardId: "sanlorenzo", code: "SP92-16", status: "production", mmsi: null, lastUpdate: "28 May 2026" },
     { id: "sx88-164", shipyardId: "sanlorenzo", code: "SX88-164", status: "production", mmsi: null, lastUpdate: "20 May 2026" },
     { id: "sl96a-885", shipyardId: "sanlorenzo", code: "SL96A-885", status: "production", mmsi: null, lastUpdate: "20 May 2026" },
@@ -233,7 +235,7 @@ export const teamYachtLinks: TeamYachtLink[] = [
 export const ownerTeamByYacht: Record<string, OwnerTeamMember[]> = {
   "sl50-171": [
     { id: "m-rossi", name: "Marco Rossi", handle: "@m_rossi", role: "owner", poa: true },
-    { id: "l-bianchi", name: "Luca Bianchi", handle: "@l_bianchi", role: "captain" },
+    { id: "l-bianchi", name: "Luca Bianchi", handle: "@l_bianchi", role: "crew" },
     { id: "g-conti", name: "Giulia Conti", handle: "@g_conti", role: "crew" },
     { id: "p-neri", name: "Paolo Neri", handle: "@p_neri", role: "crew" },
     { id: "s-marino", name: "Sofia Marino", handle: "@s_marino", role: "crew" },
@@ -338,10 +340,15 @@ export const STAGE_META: Record<
 };
 
 // Who can access the vessel at each stage (access policy shown on the yacht).
-export const STAGE_ACCESS: Record<YachtStage, string[]> = {
-  production: ["Sail ADV · Installation team"],
-  pre_delivery: ["Sail ADV", "Shipyard · Production team"],
-  delivered: ["Owner team", "Sail ADV"],
+// The production-team chip is scoped to the actual shipyard name.
+export const stageAccessLabels = (
+  stage: YachtStage,
+  shipyardName: string
+): string[] => {
+  if (stage === "production") return ["Sail ADV · Installation"];
+  if (stage === "pre_delivery")
+    return ["Sail ADV", `${shipyardName} · Production`];
+  return ["Owner team", "Sail ADV"];
 };
 
 /** Resolve a yacht's lifecycle stage, falling back to legacy status. */
@@ -359,4 +366,20 @@ export const formatDate = (iso?: string): string => {
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
   return `${d} ${MONTHS[m - 1]} ${y}`;
+};
+
+/**
+ * Format a stamp that may include a time component. Full ISO timestamps (with
+ * "T", stamped when the app advances a stage) render date + HH:MM:SS; plain
+ * yyyy-mm-dd values fall back to date-only.
+ */
+export const formatStamp = (iso?: string): string => {
+  if (!iso) return "—";
+  if (!iso.includes("T")) return formatDate(iso);
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]} ${dt.getUTCFullYear()} ${pad(
+    dt.getUTCHours()
+  )}:${pad(dt.getUTCMinutes())}:${pad(dt.getUTCSeconds())}`;
 };
