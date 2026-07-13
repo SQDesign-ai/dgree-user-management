@@ -4,9 +4,8 @@ import { Plus, ChevronRight, Link as LinkIcon, ShieldCheck } from "lucide-react"
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Avatar } from "../components/ui";
 import {
-  CreateUserDrawer,
+  AddTeamPeopleDrawer,
   AssignYachtsToTeamDrawer,
-  fullName,
 } from "../components/drawers";
 import {
   useStore,
@@ -15,7 +14,6 @@ import {
   teamById,
   membersInTeam,
   yachtsForTeam,
-  addTeamMember,
 } from "../store";
 import {
   yachtLabel,
@@ -207,20 +205,12 @@ export default function TeamDetail() {
         </aside>
       </div>
 
-      <CreateUserDrawer
+      <AddTeamPeopleDrawer
         open={personOpen}
         onClose={() => setPersonOpen(false)}
-        assignValue={`${shipyard.name} · ${team.name}`}
-        roleOptions={[
-          { value: "member", label: "Member" },
-          { value: "lead", label: "Team lead" },
-        ]}
-        onCreate={(r) =>
-          addTeamMember(teamId, shipyardId, {
-            name: fullName(r),
-            status: "invited",
-          })
-        }
+        shipyardId={shipyardId}
+        teamId={teamId}
+        teamName={team.name}
       />
 
       <AssignYachtsToTeamDrawer

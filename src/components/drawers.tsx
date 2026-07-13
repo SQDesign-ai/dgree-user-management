@@ -21,6 +21,8 @@ import {
   ungroupedShipyards,
   candidatePeopleForShipyard,
   candidatePeopleForGroup,
+  addTeamMember,
+  addExistingTeamMember,
   yachtsInShipyard,
   teamsInShipyard,
   yachtsForTeam,
@@ -681,6 +683,109 @@ export function CreateUserDrawer({
         An invite email is sent — the person sets their own password and accepts
         the T&amp;Cs on first login.
       </Note>
+    </Drawer>
+  );
+}
+
+// -------------------------------------------------------------------------
+// Add people to a team — unified flow: invite a brand-new person AND/OR pick
+// existing directory people in one drawer, submitted together (fewer clicks).
+// -------------------------------------------------------------------------
+export function AddTeamPeopleDrawer({
+  open,
+  onClose,
+  shipyardId,
+  teamId,
+  teamName,
+}: {
+  open: boolean;
+  onClose: () => void;
+  shipyardId: string;
+  teamId: string;
+  teamName: string;
+}) {
+  const [selected, setSelected] = useState<string[]>([]);
+  const [firstName, setFirstName] = useState("");
+  const [surname, setSurname] = useState("");
+  const [email, setEmail] = useState("");
+
+  // Reset every time the drawer is opened.
+  useEffect(() => {
+    if (!open) return;
+    setSelected([]);
+    setFirstName("");
+    setSurname("");
+    setEmail("");
+  }, [open]);
+
+  const candidates = candidatePeopleForShipyard(shipyardId, teamId);
+  const hasInvite = !!firstName.trim();
+  const canSubmit = selected.length > 0 || hasInvite;
+
+  function toggle(id: string) {
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+
+  function submit() {
+    selected.forEach((id) => addExistingTeamMember(teamId, shipyardId, id));
+    if (hasInvite) {
+      const name = [firstName, surname].filter(Boolean).join(" ").trim();
+      addTeamMember(teamId, shipyardId, { name, status: "invited" });
+    }
+    onClose();
+  }
+
+  const n = selected.length;
+  const submitLabel =
+    n && hasInvite
+      ? `Add ${n} + invite`
+      : n
+      ? `Add ${n} ${n === 1 ? "person" : "people"}`
+      : hasInvite
+      ? "Send invite"
+      : "Add people";
+
+  return (
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={`Add people to ${teamName}`}
+      submitLabel={submitLabel}
+      submitDisabled={!canSubmit}
+      onSubmit={submit}
+    >
+      {/* Invite a brand-new person */}
+      <div className="space-y-3 rounded-lg border border-line bg-[#0e2149]/40 p-3">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-2">
+          Invite a new person
+        </div>
+        <Row>
+          <TextField label="Name" value={firstName} onChange={setFirstName} placeholder="e.g. Luca" />
+          <TextField label="Surname" value={surname} onChange={setSurname} placeholder="e.g. Bianchi" />
+        </Row>
+        <TextField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          placeholder="name@company.com"
+        />
+      </div>
+
+      {/* Pick existing directory people */}
+      <MultiSelectField
+        label="Add existing people"
+        avatar
+        options={candidates.map((p) => ({
+          value: p.id,
+          label: p.name,
+          sublabel: p.handle,
+          badge: p.kind === "sail-adv" ? "Sail ADV" : undefined,
+        }))}
+        selected={selected}
+        onToggle={toggle}
+        emptyText="Everyone in this group is already on the team."
+      />
     </Drawer>
   );
 }
