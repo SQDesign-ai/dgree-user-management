@@ -65,13 +65,13 @@ export function CreateGroupDrawer({
     <Drawer
       open={open}
       onClose={onClose}
-      title="Create group"
-      submitLabel="Create group"
+      title="Create account"
+      submitLabel="Create account"
       submitDisabled={!name.trim()}
       onSubmit={submit}
     >
       <TextField
-        label="Group name"
+        label="Account name"
         value={name}
         onChange={setName}
         placeholder="e.g. Azimut-Benetti"
@@ -92,11 +92,11 @@ export function CreateGroupDrawer({
         }))}
         selected={shipyardIds}
         onToggle={toggleShipyard}
-        emptyText="Every brand is already assigned to a group."
+        emptyText="Every brand is already assigned to an account."
       />
       <Note>
-        Only brands not yet in a group are listed. You can also add more
-        shipyards afterwards from the group page.
+        Only brands not yet in an account are listed. You can also add more
+        shipyards afterwards from the account page.
       </Note>
     </Drawer>
   );
@@ -305,15 +305,15 @@ export function CreateShipyardDrawer({
           />
           {groupId ? (
             <AssignField
-              label="Group"
+              label="Account"
               value={groups.find((g) => g.id === groupId)?.name ?? "—"}
             />
           ) : (
             <SelectField
-              label="Group"
+              label="Account"
               value={group}
               onChange={setGroup}
-              placeholder="Select group"
+              placeholder="Select account"
               options={groups.map((g) => ({ value: g.id, label: g.name }))}
             />
           )}
@@ -405,7 +405,7 @@ export function CreateShipyardDrawer({
                   value: p.id,
                   label: p.name,
                   sublabel: p.handle,
-                  badge: p.kind === "sail-adv" ? "Sail ADV" : undefined,
+                  badge: p.kind === "sail-adv" ? "SailADV" : undefined,
                 }))}
                 selected={t.memberIds}
                 onToggle={(id) => toggleMember(t.key, id)}
@@ -414,7 +414,7 @@ export function CreateShipyardDrawer({
             </div>
           ))}
           <Note>
-            Pick existing people from this group (or any Sail ADV member). You
+            Pick existing people from this group (or any SailADV member). You
             can invite brand-new people from each team page later.
           </Note>
         </>
@@ -498,14 +498,14 @@ export function CreateTeamDrawer({
           value: p.id,
           label: p.name,
           sublabel: p.handle,
-          badge: p.kind === "sail-adv" ? "Sail ADV" : undefined,
+          badge: p.kind === "sail-adv" ? "SailADV" : undefined,
         }))}
         selected={memberIds}
         onToggle={toggleMember}
         emptyText="No people available for this shipyard's group yet."
       />
       <Note>
-        Pick existing people from this group (or any Sail ADV member). The same
+        Pick existing people from this group (or any SailADV member). The same
         person can belong to several teams. You can also invite brand-new people
         from the team page.
       </Note>
@@ -688,6 +688,98 @@ export function CreateUserDrawer({
 }
 
 // -------------------------------------------------------------------------
+// Add yacht — sync a yacht that already exists in the D.gree core DB by its
+// Asset UUID. Opened from the fleet / all-yachts view.
+// -------------------------------------------------------------------------
+export function AddYachtDrawer({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const groups = getGroups();
+  const shipyards = getShipyards();
+  const [uuid, setUuid] = useState("");
+  const [account, setAccount] = useState("");
+  const [shipyard, setShipyard] = useState("");
+  const [code, setCode] = useState("");
+  const [mmsi, setMmsi] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setUuid("");
+    setAccount("");
+    setShipyard("");
+    setCode("");
+    setMmsi("");
+  }, [open]);
+
+  const shipyardOptions = shipyards.filter((s) => s.groupId === account);
+  const canSubmit = !!shipyard && !!code.trim();
+
+  function submit() {
+    if (!shipyard) return;
+    addYacht(shipyard, { code, mmsi, assetUuid: uuid, stage: "production" });
+    onClose();
+  }
+
+  return (
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title="Add yacht"
+      submitLabel="Add yacht"
+      submitDisabled={!canSubmit}
+      onSubmit={submit}
+    >
+      <TextField
+        label="D.gree Asset UUID"
+        value={uuid}
+        onChange={setUuid}
+        placeholder="Paste the UUID issued by D.gree core"
+        autoFocus
+      />
+      <Row>
+        <SelectField
+          label="Account"
+          value={account}
+          onChange={(v) => {
+            setAccount(v);
+            setShipyard("");
+          }}
+          placeholder="Select account"
+          options={groups.map((g) => ({ value: g.id, label: g.name }))}
+        />
+        <SelectField
+          label="Shipyard"
+          value={shipyard}
+          onChange={setShipyard}
+          placeholder={account ? "Select shipyard" : "Pick an account first"}
+          options={shipyardOptions.map((s) => ({ value: s.id, label: s.name }))}
+        />
+      </Row>
+      <TextField
+        label="Yacht name / code"
+        value={code}
+        onChange={setCode}
+        placeholder="e.g. SL50-171 · CONTIGO"
+      />
+      <TextField
+        label="MMSI"
+        value={mmsi}
+        onChange={setMmsi}
+        placeholder="Optional · e.g. 256962000"
+      />
+      <Note>
+        Yachts are created in the D.gree core DB. Paste the Asset UUID to sync
+        one into the fleet — it enters as In production.
+      </Note>
+    </Drawer>
+  );
+}
+
+// -------------------------------------------------------------------------
 // Add people to a team — unified flow: invite a brand-new person AND/OR pick
 // existing directory people in one drawer, submitted together (fewer clicks).
 // -------------------------------------------------------------------------
@@ -780,7 +872,7 @@ export function AddTeamPeopleDrawer({
           value: p.id,
           label: p.name,
           sublabel: p.handle,
-          badge: p.kind === "sail-adv" ? "Sail ADV" : undefined,
+          badge: p.kind === "sail-adv" ? "SailADV" : undefined,
         }))}
         selected={selected}
         onToggle={toggle}

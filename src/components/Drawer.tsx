@@ -295,7 +295,7 @@ export interface MultiSelectOption {
   value: string;
   label: string;
   sublabel?: string;
-  badge?: string; // e.g. "Sail ADV"
+  badge?: string; // e.g. "SailADV"
 }
 
 /**

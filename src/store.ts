@@ -175,8 +175,8 @@ export const personById = (id: string) =>
 
 /**
  * People who may be linked into a team in this group: regulars whose home group
- * matches, plus all Sail ADV people (who span groups). A blank groupId (e.g. a
- * shipyard not yet assigned) yields Sail ADV people only.
+ * matches, plus all SailADV people (who span groups). A blank groupId (e.g. a
+ * shipyard not yet assigned) yields SailADV people only.
  */
 export const candidatePeopleForGroup = (groupId: string): Person[] =>
   state.people.filter(
@@ -185,7 +185,7 @@ export const candidatePeopleForGroup = (groupId: string): Person[] =>
 
 /**
  * People who may be linked into a team in this shipyard (its group's regulars +
- * all Sail ADV). Optionally excludes anyone already in `excludeTeamId`.
+ * all SailADV). Optionally excludes anyone already in `excludeTeamId`.
  */
 export const candidatePeopleForShipyard = (
   shipyardId: string,

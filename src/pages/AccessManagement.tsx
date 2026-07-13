@@ -4,8 +4,10 @@ import { Plus, ChevronRight, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Tabs, Avatar } from "../components/ui";
 import { CreateGroupDrawer, CreateShipyardDrawer } from "../components/drawers";
+import { AllYachtsPanel, AddYachtButton } from "../components/AllYachtsPanel";
 import { sailAdvTeams } from "../data/mock";
 import { FEATURES } from "../config";
+import { useExperience } from "../experience";
 import {
   useStore,
   getGroupsWithShipyards,
@@ -25,7 +27,7 @@ function CountPill({ value, label }: { value: number; label: string }) {
   );
 }
 
-function GroupCard({
+function AccountCard({
   group,
   onAddShipyard,
 }: {
@@ -40,8 +42,8 @@ function GroupCard({
         className="flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-hover/30"
       >
         <span className="flex items-center gap-2.5">
-          <span className="font-semibold text-white">{group.name} group</span>
-          <Badge tone="brand">Group</Badge>
+          <span className="font-semibold text-white">{group.name} account</span>
+          <Badge tone="brand">Account</Badge>
         </span>
         <span className="text-xs text-muted">
           {group.shipyards.length}{" "}
@@ -84,16 +86,12 @@ function GroupCard({
   );
 }
 
-export default function AccessManagement() {
-  useStore();
-  const [tab, setTab] = useState("groups");
+function AccountsPanel() {
   const [query, setQuery] = useState("");
   const [groupOpen, setGroupOpen] = useState(false);
   const [shipyardForGroup, setShipyardForGroup] = useState<string | null>(null);
 
   const groups = getGroupsWithShipyards();
-  const totals = getTotals();
-
   const filteredGroups = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return groups;
@@ -110,80 +108,32 @@ export default function AccessManagement() {
 
   return (
     <>
-      <PageHeader
-        title="Access management"
-        subtitle={`${totals.shipyards} shipyards across ${totals.groups} groups · ${totals.yachts} yachts`}
-      />
-
-      <div className="mb-5">
-        <Tabs
-          tabs={[
-            { id: "groups", label: "Groups & Shipyards" },
-            { id: "sail-adv", label: "Sail ADV teams" },
-          ]}
-          active={tab}
-          onChange={setTab}
-        />
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
+        <div className="w-full max-w-xs">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search accounts & shipyards"
+            className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
+          />
+        </div>
+        {FEATURES.createGroup && (
+          <Button onClick={() => setGroupOpen(true)}>
+            <Plus className="size-4" />
+            Add account
+          </Button>
+        )}
       </div>
 
-      {tab === "groups" ? (
-        <>
-          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
-            <div className="w-full max-w-xs">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search shipyards"
-                className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
-              />
-            </div>
-            {FEATURES.createGroup && (
-              <Button onClick={() => setGroupOpen(true)}>
-                <Plus className="size-4" />
-                Add Group
-              </Button>
-            )}
-          </div>
-
-          <div className="gap-4 lg:columns-2">
-            {filteredGroups.map((g) => (
-              <GroupCard
-                key={g.id}
-                group={g}
-                onAddShipyard={(id) => setShipyardForGroup(id)}
-              />
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <SearchInput placeholder="Search Sail ADV teams" />
-            <Button>
-              <Plus className="size-4" />
-              Add team
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {sailAdvTeams.map((t) => (
-              <Card key={t.id} className="p-5">
-                <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-brand/15 text-brand">
-                  <Users className="size-5" />
-                </div>
-                <div className="font-semibold text-white">{t.name}</div>
-                <div className="mt-0.5 text-sm text-ink-4">{t.description}</div>
-                <div className="mt-4 flex items-center justify-between border-t border-line-soft/60 pt-3">
-                  <Badge tone="brand">{t.scope}</Badge>
-                  <span className="flex items-center gap-1.5 text-xs text-ink-4">
-                    <Avatar name={t.name} size={18} />
-                    {t.memberCount} members
-                  </span>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </>
-      )}
+      <div className="gap-4 lg:columns-2">
+        {filteredGroups.map((g) => (
+          <AccountCard
+            key={g.id}
+            group={g}
+            onAddShipyard={(id) => setShipyardForGroup(id)}
+          />
+        ))}
+      </div>
 
       <CreateGroupDrawer open={groupOpen} onClose={() => setGroupOpen(false)} />
       <CreateShipyardDrawer
@@ -191,6 +141,78 @@ export default function AccessManagement() {
         groupId={shipyardForGroup ?? undefined}
         onClose={() => setShipyardForGroup(null)}
       />
+    </>
+  );
+}
+
+function SailAdvPanel() {
+  return (
+    <>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <SearchInput placeholder="Search SailADV teams" />
+        <Button>
+          <Plus className="size-4" />
+          Add team
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {sailAdvTeams.map((t) => (
+          <Card key={t.id} className="p-5">
+            <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-brand/15 text-brand">
+              <Users className="size-5" />
+            </div>
+            <div className="font-semibold text-white">{t.name}</div>
+            <div className="mt-0.5 text-sm text-ink-4">{t.description}</div>
+            <div className="mt-4 flex items-center justify-between border-t border-line-soft/60 pt-3">
+              <Badge tone="brand">{t.scope}</Badge>
+              <span className="flex items-center gap-1.5 text-xs text-ink-4">
+                <Avatar name={t.name} size={18} />
+                {t.memberCount} members
+              </span>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </>
+  );
+}
+
+export default function AccessManagement() {
+  useStore();
+  const experience = useExperience();
+  const [tab, setTab] = useState("accounts");
+  const totals = getTotals();
+
+  const tabs =
+    experience === "single"
+      ? [
+          { id: "accounts", label: "Accounts" },
+          { id: "sailadv", label: "SailADV" },
+          { id: "yachts", label: "All yachts" },
+        ]
+      : [
+          { id: "accounts", label: "Accounts" },
+          { id: "sailadv", label: "SailADV" },
+        ];
+
+  // If we switched to split mode while the yachts tab was active, fall back.
+  const activeTab = tabs.some((t) => t.id === tab) ? tab : "accounts";
+
+  return (
+    <>
+      <PageHeader
+        title="Access management"
+        subtitle={`${totals.shipyards} shipyards across ${totals.groups} accounts · ${totals.yachts} yachts`}
+        actions={activeTab === "yachts" ? <AddYachtButton /> : undefined}
+      />
+
+      <div className="mb-5">
+        <Tabs tabs={tabs} active={activeTab} onChange={setTab} />
+      </div>
+
+      {activeTab === "accounts" && <AccountsPanel />}
+      {activeTab === "sailadv" && <SailAdvPanel />}
+      {activeTab === "yachts" && <AllYachtsPanel />}
     </>
   );
 }

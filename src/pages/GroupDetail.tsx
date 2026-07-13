@@ -64,10 +64,10 @@ export default function GroupDetail() {
       <PageHeader
         crumbs={[
           { label: "Access management", to: "/" },
-          { label: `${group.name} Group` },
+          { label: `${group.name} Account` },
         ]}
         title={group.name}
-        badge={<Badge tone="brand">Group</Badge>}
+        badge={<Badge tone="brand">Account</Badge>}
         subtitle={`${groupShipyards.length} shipyards · ${totalYachts} yachts`}
       />
 
@@ -134,7 +134,7 @@ export default function GroupDetail() {
                 {people.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-5 py-8 text-center text-sm text-muted">
-                      No people with group-level access yet.
+                      No people with account-level access yet.
                     </td>
                   </tr>
                 )}
@@ -142,8 +142,8 @@ export default function GroupDetail() {
             </table>
           </Card>
           <p className="mt-3 text-xs leading-relaxed text-muted">
-            People here have group-level access — reaching the brands shown and
-            every yacht under them. Grant all brands (the whole group) or a
+            People here have account-level access — reaching the brands shown and
+            every yacht under them. Grant all brands (the whole account) or a
             subset.
           </p>
         </>
@@ -190,7 +190,7 @@ export default function GroupDetail() {
         assignLabel="Assign to"
         assignValue={`${group.name} · all brands`}
         roleOptions={[
-          { value: "admin", label: "Group admin" },
+          { value: "admin", label: "Account admin" },
           { value: "manager", label: "Manager" },
           { value: "viewer", label: "Viewer" },
         ]}

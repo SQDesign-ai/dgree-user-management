@@ -14,7 +14,7 @@ export type AccessStatus = "active" | "expired" | "pending";
 
 // "regular" people belong to a single group (home groupId) and can be linked
 // into any team/shipyard *within that group*. "sail-adv" people belong to the
-// global Sail ADV org and can be linked across multiple groups & shipyards.
+// global SailADV org and can be linked across multiple groups & shipyards.
 export type PersonKind = "regular" | "sail-adv";
 
 export interface Group {
@@ -174,7 +174,7 @@ export const directoryPeople: Person[] = [
   // A couple of regulars in other groups so their pickers aren't sail-adv-only.
   { id: "f-romano", name: "Francesca Romano", handle: "@f_romano", status: "active", kind: "regular", groupId: "azimut-benetti" },
   { id: "g-esposito", name: "Giorgio Esposito", handle: "@g_esposito", status: "active", kind: "regular", groupId: "cantiere-del-pardo" },
-  // Sail ADV org — global people who can span groups & shipyards.
+  // SailADV org — global people who can span groups & shipyards.
   { id: "sa-ricci", name: "Elena Ricci", handle: "@e_ricci", status: "active", kind: "sail-adv" },
   { id: "sa-greco", name: "Matteo Greco", handle: "@m_greco", status: "active", kind: "sail-adv" },
   { id: "sa-rizzo", name: "Chiara Rizzo", handle: "@c_rizzo", status: "active", kind: "sail-adv" },
@@ -345,10 +345,10 @@ export const stageAccessLabels = (
   stage: YachtStage,
   shipyardName: string
 ): string[] => {
-  if (stage === "production") return ["Sail ADV · Installation"];
+  if (stage === "production") return ["SailADV · Installation"];
   if (stage === "pre_delivery")
-    return ["Sail ADV", `${shipyardName} · Production`];
-  return ["Owner team", "Sail ADV"];
+    return ["SailADV", `${shipyardName} · Production`];
+  return ["Owner team", "SailADV"];
 };
 
 /** Resolve a yacht's lifecycle stage, falling back to legacy status. */

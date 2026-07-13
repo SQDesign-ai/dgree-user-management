@@ -42,7 +42,7 @@ export default function ShipyardDetail() {
         crumbs={[
           { label: "Access management", to: "/" },
           ...(group
-            ? [{ label: `${group.name} Group`, to: `/groups/${group.id}` }]
+            ? [{ label: `${group.name} Account`, to: `/groups/${group.id}` }]
             : []),
           { label: shipyard.name },
         ]}

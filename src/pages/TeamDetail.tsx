@@ -56,7 +56,7 @@ export default function TeamDetail() {
         crumbs={[
           { label: "Access management", to: "/" },
           ...(group
-            ? [{ label: `${group.name} Group`, to: `/groups/${group.id}` }]
+            ? [{ label: `${group.name} Account`, to: `/groups/${group.id}` }]
             : []),
           { label: shipyard.name, to: `/shipyards/${shipyardId}` },
           { label: team.name },
@@ -102,7 +102,7 @@ export default function TeamDetail() {
                               {m.name}
                             </span>
                             {m.kind === "sail-adv" && (
-                              <Badge tone="brand">Sail ADV</Badge>
+                              <Badge tone="brand">SailADV</Badge>
                             )}
                           </div>
                           <div className="text-xs text-ink-4">{m.handle}</div>

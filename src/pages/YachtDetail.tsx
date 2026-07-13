@@ -19,6 +19,7 @@ import {
   setYachtStage,
   setYachtAssetUuid,
 } from "../store";
+import { useExperience } from "../experience";
 import {
   yachtLabel,
   yachtStage,
@@ -156,6 +157,12 @@ export default function YachtDetail() {
   const accessTeams = teamsForYacht(shipyardId, yachtId);
   const stage = yachtStage(yacht);
   const canOwnerTeam = stage === "delivered"; // owner team unlocks at delivery
+  const experience = useExperience();
+  // A yacht lives under the fleet; in split mode the breadcrumb roots there.
+  const rootCrumb =
+    experience === "split"
+      ? { label: "Fleet management", to: "/fleet" }
+      : { label: "Access management", to: "/" };
 
   const filteredTeam = useMemo(
     () => (roleFilter === "all" ? team : team.filter((m) => m.role === roleFilter)),
@@ -176,14 +183,23 @@ export default function YachtDetail() {
   return (
     <>
       <PageHeader
-        crumbs={[
-          { label: "Access management", to: "/" },
-          ...(group
-            ? [{ label: `${group.name} Group`, to: `/groups/${group.id}` }]
-            : []),
-          { label: shipyard.name, to: `/shipyards/${shipyardId}` },
-          { label: yachtLabel(yacht) },
-        ]}
+        crumbs={
+          experience === "split"
+            ? [rootCrumb, { label: yachtLabel(yacht) }]
+            : [
+                rootCrumb,
+                ...(group
+                  ? [
+                      {
+                        label: `${group.name} Account`,
+                        to: `/groups/${group.id}`,
+                      },
+                    ]
+                  : []),
+                { label: shipyard.name, to: `/shipyards/${shipyardId}` },
+                { label: yachtLabel(yacht) },
+              ]
+        }
         title={yachtLabel(yacht)}
         badge={<StageBadge stage={stage} />}
         subtitle={yacht.mmsi ? `MMSI ${yacht.mmsi}` : "MMSI not assigned"}

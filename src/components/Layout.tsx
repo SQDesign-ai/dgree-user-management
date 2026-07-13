@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   LineChart,
@@ -13,7 +13,10 @@ import {
   Bell,
   ChevronRight,
   ShieldCheck,
+  Repeat,
+  LogOut,
 } from "lucide-react";
+import { useExperience } from "../experience";
 
 interface NavItem {
   label: string;
@@ -91,17 +94,6 @@ function Sidebar() {
           <NavRow key={n.label} item={n} />
         ))}
 
-        <SectionLabel>Access management</SectionLabel>
-        <Link to="/">
-          <NavRow
-            item={{
-              label: "Management",
-              icon: <ShieldCheck className="size-[18px]" />,
-              active: true,
-            }}
-          />
-        </Link>
-
         <SectionLabel>Alarm manager</SectionLabel>
         <NavRow item={{ label: "Alarms", icon: <BellRing className="size-[18px]" /> }} />
 
@@ -122,19 +114,70 @@ function Sidebar() {
         Notifications
       </div>
 
-      <div className="mt-1 flex items-center justify-between rounded-xl bg-white/[0.06] px-3 py-2.5 ring-1 ring-white/10">
+      <UserMenu />
+    </aside>
+  );
+}
+
+function UserMenu() {
+  const experience = useExperience();
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+  const item =
+    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink-2 transition-colors hover:bg-white/[0.06] hover:text-white";
+  return (
+    <div className="relative mt-1">
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={close} />
+          <div className="absolute bottom-full left-0 z-20 mb-2 w-full overflow-hidden rounded-xl border border-line bg-surface-2 p-1.5 shadow-2xl">
+            <div className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-nav-section">
+              Access management
+            </div>
+            <Link to="/" onClick={close} className={item}>
+              <ShieldCheck className="size-[18px]" />
+              Access management
+            </Link>
+            {experience === "split" && (
+              <Link to="/fleet" onClick={close} className={item}>
+                <Ship className="size-[18px]" />
+                Fleet management
+              </Link>
+            )}
+            <div className="my-1 h-px bg-line" />
+            <Link to="/experience" onClick={close} className={item}>
+              <Repeat className="size-[18px]" />
+              Switch experience
+            </Link>
+            <div className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted">
+              <LogOut className="size-[18px]" />
+              Sign out
+            </div>
+          </div>
+        </>
+      )}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between rounded-xl bg-white/[0.06] px-3 py-2.5 text-left ring-1 ring-white/10 transition-colors hover:bg-white/[0.1]"
+      >
         <span className="flex items-center gap-2.5">
           <span className="flex size-8 items-center justify-center rounded-full bg-white/10 text-xs font-semibold">
             SQ
           </span>
           <span className="leading-tight">
-            <span className="block text-sm font-semibold text-white">Username</span>
+            <span className="block text-sm font-semibold text-white">
+              Username
+            </span>
             <span className="block text-xs text-ink-4">Welcome back</span>
           </span>
         </span>
-        <ChevronRight className="size-4 text-ink-4" />
-      </div>
-    </aside>
+        <ChevronRight
+          className={`size-4 text-ink-4 transition-transform ${
+            open ? "-rotate-90" : ""
+          }`}
+        />
+      </button>
+    </div>
   );
 }
 
