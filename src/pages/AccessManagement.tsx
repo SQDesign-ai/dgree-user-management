@@ -4,7 +4,7 @@ import { Plus, ChevronRight, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Tabs, Avatar } from "../components/ui";
 import { CreateGroupDrawer, CreateShipyardDrawer } from "../components/drawers";
-import { AllYachtsPanel, AddYachtButton } from "../components/AllYachtsPanel";
+import { AllYachtsPanel } from "../components/AllYachtsPanel";
 import { sailAdvTeams } from "../data/mock";
 import { FEATURES } from "../config";
 import { useExperience } from "../experience";
@@ -148,7 +148,7 @@ function AccountsPanel() {
 function SailAdvPanel() {
   return (
     <>
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
         <SearchInput placeholder="Search SailADV teams" />
         <Button>
           <Plus className="size-4" />
@@ -203,7 +203,6 @@ export default function AccessManagement() {
       <PageHeader
         title="Access management"
         subtitle={`${totals.shipyards} shipyards across ${totals.groups} accounts · ${totals.yachts} yachts`}
-        actions={activeTab === "yachts" ? <AddYachtButton /> : undefined}
       />
 
       <div className="mb-5">

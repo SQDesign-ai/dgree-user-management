@@ -75,17 +75,8 @@ export function AllYachtsPanel() {
 
   return (
     <>
-      {/* Filter bar */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search yachts, MMSI, UUID…"
-            className={`${control} w-full pl-9`}
-          />
-        </div>
+      {/* Control row — filters left, search to the right, add button last */}
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
         <select
           value={account}
           onChange={(e) => setAccount(e.target.value)}
@@ -110,6 +101,16 @@ export function AllYachtsPanel() {
             </option>
           ))}
         </select>
+        <div className="relative w-full sm:w-72">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search yachts, MMSI, UUID…"
+            className={`${control} w-full pl-9`}
+          />
+        </div>
+        <AddYachtButton />
       </div>
 
       <Card>

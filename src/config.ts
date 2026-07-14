@@ -1,13 +1,14 @@
 // -------------------------------------------------------------------------
 // Feature flags.
 //
-// Creating groups, shipyards and yachts is currently done at the DB/backend
-// level, not in the customer platform — so the in-app create flows are hidden.
-// The drawers and store mutations are left intact; flip a flag to true to
-// re-expose the corresponding "Add/Create" button.
+// Accounts are created in-app (the "Add account" button on the Accounts tab).
+// Shipyards and yachts are still provisioned at the DB/backend level, so those
+// in-app create flows stay hidden (yachts can be synced by UUID from the fleet
+// view). The drawers and store mutations are intact; flip a flag to re-expose
+// its "Add/Create" button.
 // -------------------------------------------------------------------------
 export const FEATURES = {
-  createGroup: false,
+  createGroup: true,
   createShipyard: false,
   createYacht: false,
 } as const;

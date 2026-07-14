@@ -84,7 +84,7 @@ export default function GroupDetail() {
 
       {tab === "people" ? (
         <>
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
             <SearchInput placeholder="Search people" />
             <Button onClick={() => setPersonOpen(true)}>
               <Plus className="size-4" />
@@ -149,7 +149,7 @@ export default function GroupDetail() {
         </>
       ) : (
         <>
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
             <SearchInput placeholder="Search shipyards" />
             {FEATURES.createShipyard && (
               <Button onClick={() => setShipyardOpen(true)}>

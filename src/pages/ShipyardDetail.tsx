@@ -69,7 +69,7 @@ export default function ShipyardDetail() {
 
       {tab === "teams" ? (
         <>
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
             <SearchInput placeholder="Search teams" />
             <Button onClick={() => setTeamOpen(true)}>
               <Plus className="size-4" />
@@ -115,7 +115,7 @@ export default function ShipyardDetail() {
         </>
       ) : (
         <>
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
             <SearchInput placeholder="Search yachts" />
             {FEATURES.createYacht && (
               <Button onClick={() => setYachtOpen(true)}>

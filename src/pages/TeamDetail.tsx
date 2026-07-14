@@ -64,19 +64,17 @@ export default function TeamDetail() {
         title={team.name}
         badge={<Badge tone="success">{team.memberCount} members</Badge>}
         subtitle={`${team.description} · ${shipyard.name}`}
-        actions={
-          <Button onClick={() => setPersonOpen(true)}>
-            <Plus className="size-4" />
-            Add person
-          </Button>
-        }
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         {/* Members */}
         <div>
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
             <SearchInput placeholder="Search members" />
+            <Button onClick={() => setPersonOpen(true)}>
+              <Plus className="size-4" />
+              Add person
+            </Button>
           </div>
           <Card>
             <table className="w-full text-sm">
