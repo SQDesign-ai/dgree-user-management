@@ -704,6 +704,7 @@ export function AddYachtDrawer({
   const [account, setAccount] = useState("");
   const [shipyard, setShipyard] = useState("");
   const [code, setCode] = useState("");
+  const [name, setName] = useState("");
   const [mmsi, setMmsi] = useState("");
 
   useEffect(() => {
@@ -712,6 +713,7 @@ export function AddYachtDrawer({
     setAccount("");
     setShipyard("");
     setCode("");
+    setName("");
     setMmsi("");
   }, [open]);
 
@@ -720,7 +722,7 @@ export function AddYachtDrawer({
 
   function submit() {
     if (!shipyard) return;
-    addYacht(shipyard, { code, mmsi, assetUuid: uuid, stage: "production" });
+    addYacht(shipyard, { code, name, mmsi, assetUuid: uuid, stage: "production" });
     onClose();
   }
 
@@ -759,12 +761,20 @@ export function AddYachtDrawer({
           options={shipyardOptions.map((s) => ({ value: s.id, label: s.name }))}
         />
       </Row>
-      <TextField
-        label="Yacht name / code"
-        value={code}
-        onChange={setCode}
-        placeholder="e.g. SL50-171 · CONTIGO"
-      />
+      <Row>
+        <TextField
+          label="Hull code"
+          value={code}
+          onChange={setCode}
+          placeholder="e.g. SL50-171"
+        />
+        <TextField
+          label="Yacht name"
+          value={name}
+          onChange={setName}
+          placeholder="e.g. CONTIGO"
+        />
+      </Row>
       <TextField
         label="MMSI"
         value={mmsi}
