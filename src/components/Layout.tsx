@@ -14,7 +14,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Repeat,
-  LogOut,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useExperience } from "../experience";
 
@@ -121,6 +121,7 @@ function Sidebar() {
 
 function UserMenu() {
   const experience = useExperience();
+  const versionLabel = experience === "split" ? "Two pages" : "Single page";
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   const item =
@@ -147,12 +148,8 @@ function UserMenu() {
             <div className="my-1 h-px bg-line" />
             <Link to="/experience" onClick={close} className={item}>
               <Repeat className="size-[18px]" />
-              Switch experience
+              Switch version
             </Link>
-            <div className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted">
-              <LogOut className="size-[18px]" />
-              Sign out
-            </div>
           </div>
         </>
       )}
@@ -161,14 +158,14 @@ function UserMenu() {
         className="flex w-full items-center justify-between rounded-xl bg-white/[0.06] px-3 py-2.5 text-left ring-1 ring-white/10 transition-colors hover:bg-white/[0.1]"
       >
         <span className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-full bg-white/10 text-xs font-semibold">
-            SQ
+          <span className="flex size-8 items-center justify-center rounded-full bg-white/10">
+            <SlidersHorizontal className="size-4 text-ink-2" />
           </span>
           <span className="leading-tight">
             <span className="block text-sm font-semibold text-white">
-              Username
+              Prototype
             </span>
-            <span className="block text-xs text-ink-4">Welcome back</span>
+            <span className="block text-xs text-ink-4">{versionLabel}</span>
           </span>
         </span>
         <ChevronRight

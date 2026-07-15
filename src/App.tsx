@@ -20,6 +20,8 @@ function LayoutRoute() {
 export default function App() {
   const experience = useExperience();
 
+  // Single prototype (Access & Fleet management), no login and no prototype
+  // hub — the version picker is the entry point.
   return (
     <Routes>
       <Route path="/experience" element={<ExperienceSelector />} />
