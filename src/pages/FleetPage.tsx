@@ -8,7 +8,7 @@ export default function FleetPage() {
   return (
     <>
       <PageHeader
-        title="Fleet management"
+        title="D.gree fleet"
         subtitle={`${totals.yachts} yachts across ${totals.groups} accounts`}
       />
       <AllYachtsPanel />

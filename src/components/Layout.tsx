@@ -13,10 +13,8 @@ import {
   Bell,
   ChevronRight,
   ShieldCheck,
-  Repeat,
   SlidersHorizontal,
 } from "lucide-react";
-import { useExperience } from "../experience";
 
 interface NavItem {
   label: string;
@@ -120,8 +118,6 @@ function Sidebar() {
 }
 
 function UserMenu() {
-  const experience = useExperience();
-  const versionLabel = experience === "split" ? "Two pages" : "Single page";
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   const item =
@@ -133,22 +129,15 @@ function UserMenu() {
           <div className="fixed inset-0 z-10" onClick={close} />
           <div className="absolute bottom-full left-0 z-20 mb-2 w-full overflow-hidden rounded-xl border border-line bg-surface-2 p-1.5 shadow-2xl">
             <div className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-nav-section">
-              Access management
+              Pages
             </div>
             <Link to="/" onClick={close} className={item}>
               <ShieldCheck className="size-[18px]" />
               Access management
             </Link>
-            {experience === "split" && (
-              <Link to="/fleet" onClick={close} className={item}>
-                <Ship className="size-[18px]" />
-                Fleet management
-              </Link>
-            )}
-            <div className="my-1 h-px bg-line" />
-            <Link to="/experience" onClick={close} className={item}>
-              <Repeat className="size-[18px]" />
-              Switch version
+            <Link to="/fleet" onClick={close} className={item}>
+              <Ship className="size-[18px]" />
+              D.gree fleet
             </Link>
           </div>
         </>
@@ -161,12 +150,7 @@ function UserMenu() {
           <span className="flex size-8 items-center justify-center rounded-full bg-white/10">
             <SlidersHorizontal className="size-4 text-ink-2" />
           </span>
-          <span className="leading-tight">
-            <span className="block text-sm font-semibold text-white">
-              Prototype
-            </span>
-            <span className="block text-xs text-ink-4">{versionLabel}</span>
-          </span>
+          <span className="text-sm font-semibold text-white">Menu</span>
         </span>
         <ChevronRight
           className={`size-4 text-ink-4 transition-transform ${

@@ -4,10 +4,8 @@ import { Plus, ChevronRight, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Tabs, Avatar } from "../components/ui";
 import { CreateGroupDrawer, CreateShipyardDrawer } from "../components/drawers";
-import { AllYachtsPanel } from "../components/AllYachtsPanel";
 import { sailAdvTeams } from "../data/mock";
 import { FEATURES } from "../config";
-import { useExperience } from "../experience";
 import {
   useStore,
   getGroupsWithShipyards,
@@ -179,23 +177,14 @@ function SailAdvPanel() {
 
 export default function AccessManagement() {
   useStore();
-  const experience = useExperience();
   const [tab, setTab] = useState("accounts");
   const totals = getTotals();
 
-  const tabs =
-    experience === "single"
-      ? [
-          { id: "accounts", label: "Accounts" },
-          { id: "sailadv", label: "SailADV" },
-          { id: "yachts", label: "All yachts" },
-        ]
-      : [
-          { id: "accounts", label: "Accounts" },
-          { id: "sailadv", label: "SailADV" },
-        ];
+  const tabs = [
+    { id: "accounts", label: "Accounts" },
+    { id: "sailadv", label: "SailADV" },
+  ];
 
-  // If we switched to split mode while the yachts tab was active, fall back.
   const activeTab = tabs.some((t) => t.id === tab) ? tab : "accounts";
 
   return (
@@ -211,7 +200,6 @@ export default function AccessManagement() {
 
       {activeTab === "accounts" && <AccountsPanel />}
       {activeTab === "sailadv" && <SailAdvPanel />}
-      {activeTab === "yachts" && <AllYachtsPanel />}
     </>
   );
 }
