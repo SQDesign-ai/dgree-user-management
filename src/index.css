@@ -1,33 +1,45 @@
 @import "tailwindcss";
 
+/* -----------------------------------------------------------------------------
+ * Every colour below derives from the design system's semantic tier
+ * (@sqdesign-ai/dgree-ds-tokens, imported in main.tsx). The DS owns the values;
+ * these names only exist so the app's Tailwind utilities keep working. Change a
+ * colour in the DS — or swap the skin/mode — and this follows automatically.
+ *
+ * The mapping is exact: the DS's "dgree-current" skin ramp was built from this
+ * palette, so ink-50 == the old #0c1c40, ink-300 == #26406e, and so on.
+ * -------------------------------------------------------------------------- */
 @theme {
-  /* Surfaces */
-  --color-page: #091325;
-  --color-nav: #0e2d63;
-  --color-surface: #0c1c40;
-  --color-surface-2: #16294f;
-  --color-surface-3: #1b2f57;
-  --color-hover: #213763;
+  /* Surfaces — DS canvas + the low end of the ink ramp */
+  --color-page: rgb(var(--surface));
+  --color-surface: rgb(var(--ink-50));
+  --color-surface-2: rgb(var(--ink-100));
+  --color-surface-3: rgb(var(--ink-200));
+  --color-hover: var(--state-hover);
 
   /* Borders */
-  --color-line: #26406e;
-  --color-line-soft: #1e3564;
+  --color-line: rgb(var(--ink-300));
+  --color-line-soft: rgb(var(--ink-200));
 
-  /* Text */
-  --color-ink: #ffffff;
-  --color-ink-2: #dce6f7;
-  --color-ink-3: #afc1e6;
-  --color-ink-4: #9fb2d4;
-  --color-muted: #5e739b;
-  --color-muted-2: #7e92b4;
-  --color-nav-section: #6c94c6;
+  /* Text — the ink ramp runs dark→light in dark mode */
+  --color-ink: rgb(var(--ink-950));
+  --color-ink-2: rgb(var(--ink-900));
+  --color-ink-3: rgb(var(--ink-700));
+  --color-ink-4: rgb(var(--ink-600));
+  --color-muted: rgb(var(--ink-400));
+  --color-muted-2: rgb(var(--ink-500));
 
   /* Accents */
-  --color-brand: #2f6bed;
-  --color-brand-hover: #4680f5;
-  --color-success: #34d399;
-  --color-warn: #f5b544;
-  --color-danger: #e27878;
+  --color-brand: rgb(var(--brand));
+  --color-brand-hover: rgb(var(--brand-hover));
+  --color-success: var(--status-success-icon);
+  --color-warn: var(--status-warning-icon);
+  --color-danger: var(--status-danger-icon);
+
+  /* App-only chrome the DS has no equivalent for (the navy sidebar). */
+  --color-nav: #0e2d63;
+  --color-nav-section: #6c94c6;
+  --color-nav-selected: var(--state-active);
 
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;

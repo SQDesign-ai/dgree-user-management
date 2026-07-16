@@ -51,11 +51,18 @@ function Logo() {
 }
 
 function NavRow({ item }: { item: NavItem }) {
-  // No selected/hover states — the sidebar is static chrome here; only the
-  // user-avatar menu at the bottom carries a selected treatment.
+  // Default → hover → selected, per the DS. Nothing here is marked selected:
+  // these rows are inert chrome, so claiming one would imply a page you
+  // aren't on. `active` is wired for when the nav becomes real.
   return (
-    <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-3">
-      <span className="text-ink-3">{item.icon}</span>
+    <div
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+        item.active
+          ? "bg-nav-selected text-white"
+          : "text-ink-3 hover:bg-white/10 hover:text-white"
+      }`}
+    >
+      <span>{item.icon}</span>
       {item.label}
     </div>
   );
@@ -147,7 +154,7 @@ function UserMenu() {
       )}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between rounded-xl bg-white/[0.06] px-3 py-2.5 text-left ring-1 ring-white/10 transition-colors hover:bg-white/[0.1]"
+        className="flex w-full items-center justify-between rounded-xl bg-nav-selected px-3 py-2.5 text-left transition-colors hover:brightness-110"
       >
         <span className="flex items-center gap-2.5">
           <Avatar name={CURRENT_USER} />

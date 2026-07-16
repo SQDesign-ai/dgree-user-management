@@ -1,45 +1,50 @@
 import { type ReactNode } from "react";
 import { Search } from "lucide-react";
+import {
+  Badge as DsBadge,
+  type BadgeTone as DsBadgeTone,
+} from "@sqdesign-ai/dgree-ds-react";
 import { STAGE_META, type YachtStage } from "../data/mock";
+
+// Categorisation (roles, PoA, team names…) belongs on Tag — Badge is for
+// semantic status only.
+export { Tag, tagColorFor, TAG_COLORS, Chip, NumberBadge } from "@sqdesign-ai/dgree-ds-react";
+export type { TagColor } from "@sqdesign-ai/dgree-ds-react";
 
 // ---- Badge ---------------------------------------------------------------
 
+/**
+ * The app's tones predate the DS, so they're mapped onto its semantic set.
+ * `brand`/`outline` have no semantic meaning — those call sites are
+ * categorical and should move to Tag.
+ */
 type Tone = "neutral" | "success" | "warn" | "danger" | "brand" | "outline";
 
-const toneMap: Record<Tone, string> = {
-  neutral: "bg-white/[0.06] text-ink-3 border border-white/10",
-  success: "bg-success/15 text-success border border-success/25",
-  warn: "bg-warn/15 text-warn border border-warn/25",
-  danger: "bg-danger/15 text-danger border border-danger/25",
-  brand: "bg-brand/20 text-[#9dc0ff] border border-brand/30",
-  outline: "bg-transparent text-ink-3 border border-line",
+const toneMap: Record<Tone, DsBadgeTone> = {
+  neutral: "neutral",
+  success: "success",
+  warn: "warning",
+  danger: "danger",
+  brand: "info",
+  outline: "neutral",
 };
 
 export function Badge({
   children,
   tone = "neutral",
-  dot = false,
 }: {
   children: ReactNode;
   tone?: Tone;
+  /**
+   * Deliberately not forwarded to the DS. The two mean different things: here
+   * it meant "a dot inside the filled pill", whereas the DS's `dot` swaps the
+   * pill out for a bare dot + label ("colour only, for tight rows"). Passing it
+   * through silently stripped the pill everywhere, so we render the DS's
+   * default pill and ignore it.
+   */
   dot?: boolean;
 }) {
-  const dotColor: Record<Tone, string> = {
-    neutral: "bg-muted",
-    success: "bg-success",
-    warn: "bg-warn",
-    danger: "bg-danger",
-    brand: "bg-brand",
-    outline: "bg-muted",
-  };
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${toneMap[tone]}`}
-    >
-      {dot && <span className={`size-1.5 rounded-full ${dotColor[tone]}`} />}
-      {children}
-    </span>
-  );
+  return <DsBadge tone={toneMap[tone]}>{children}</DsBadge>;
 }
 
 /** Badge for a yacht's delivery lifecycle stage. */
@@ -60,34 +65,11 @@ export function StageBadge({
 
 // ---- Button --------------------------------------------------------------
 
-export function Button({
-  children,
-  variant = "primary",
-  onClick,
-  className = "",
-}: {
-  children: ReactNode;
-  variant?: "primary" | "ghost" | "secondary" | "danger";
-  onClick?: () => void;
-  className?: string;
-}) {
-  const styles = {
-    primary:
-      "bg-brand hover:bg-brand-hover text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset]",
-    secondary: "bg-surface-3 hover:bg-hover text-ink-2 border border-line",
-    ghost: "bg-transparent hover:bg-white/[0.06] text-ink-3 border border-line",
-    // Destructive, but outlined — it shouldn't out-shout the primary action.
-    danger: "bg-danger/10 hover:bg-danger/20 text-danger border border-danger/40",
-  }[variant];
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${styles} ${className}`}
-    >
-      {children}
-    </button>
-  );
-}
+// Straight from the design system — its variants (primary | secondary | ghost
+// | danger) already match what this app used, and ButtonProps extends
+// ButtonHTMLAttributes, so onClick/className carry over unchanged.
+export { Button, IconButton } from "@sqdesign-ai/dgree-ds-react";
+export type { ButtonProps, ButtonVariant } from "@sqdesign-ai/dgree-ds-react";
 
 // ---- Search input --------------------------------------------------------
 
@@ -168,21 +150,9 @@ export function Tabs({
 
 // ---- Card ----------------------------------------------------------------
 
-export function Card({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`overflow-hidden rounded-xl border border-line bg-surface/70 ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
+// From the DS — it carries the surface, border, radius and shadow, and takes
+// the same {children, className} this app was already passing.
+export { Card } from "@sqdesign-ai/dgree-ds-react";
 
 // ---- Empty state ---------------------------------------------------------
 

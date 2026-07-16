@@ -2,7 +2,16 @@ import { type ReactNode, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { Plus, ChevronRight, Undo2 } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
-import { Badge, Button, Card, Avatar, StageBadge } from "../components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  Avatar,
+  StageBadge,
+  Tag,
+  tagColorFor,
+  type TagColor,
+} from "../components/ui";
 import {
   CreateUserDrawer,
   AssignTeamsToYachtDrawer,
@@ -39,11 +48,13 @@ const roleLabel: Record<YachtRole, string> = {
   guest: "Guest",
 };
 
-const roleTone: Record<YachtRole, "brand" | "neutral" | "outline"> = {
-  owner: "brand",
-  captain: "neutral",
-  crew: "outline",
-  guest: "outline",
+// A role categorises a person — that's a Tag, not a semantic Badge. Colours are
+// pinned rather than derived so each role reads the same everywhere.
+const roleColor: Record<YachtRole, TagColor> = {
+  owner: "blue",
+  captain: "teal",
+  crew: "mist",
+  guest: "taupe",
 };
 
 const ROLE_FILTERS: { id: "all" | YachtRole; label: string }[] = [
@@ -149,11 +160,13 @@ function TeamCard({
           </button>
         )}
       </div>
+      {/* Team names are categorical — Tag colours them deterministically, so a
+          given team reads the same colour wherever it appears. */}
       <div className="flex flex-wrap gap-2">
         {chips.map((c) => (
-          <Badge key={c} tone="brand">
+          <Tag key={c} color={tagColorFor(c)}>
             {c}
-          </Badge>
+          </Tag>
         ))}
       </div>
       <p className="mt-3 text-[11px] text-muted">{note}</p>
@@ -276,8 +289,8 @@ function YachtTeamCard({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <Badge tone={roleTone[m.role]}>{roleLabel[m.role]}</Badge>
-                    {m.poa && <Badge tone="success">PoA</Badge>}
+                    <Tag color={roleColor[m.role]}>{roleLabel[m.role]}</Tag>
+                    {m.poa && <Tag color="violet">PoA</Tag>}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right text-muted">
@@ -421,17 +434,19 @@ function YachtDetailsCard({
       </Field>
 
       <div className="flex items-center justify-end gap-2">
+        {/* secondary, not ghost: the DS's ghost is borderless and would read
+            as a text link again. */}
         {editing ? (
           <>
-            <Button variant="ghost" onClick={() => setEditing(false)}>
+            <Button variant="secondary" size="sm" onClick={() => setEditing(false)}>
               Cancel
             </Button>
-            <Button variant="ghost" onClick={save}>
+            <Button variant="primary" size="sm" onClick={save}>
               Save
             </Button>
           </>
         ) : (
-          <Button variant="ghost" onClick={start}>
+          <Button variant="secondary" size="sm" onClick={start}>
             Edit
           </Button>
         )}
