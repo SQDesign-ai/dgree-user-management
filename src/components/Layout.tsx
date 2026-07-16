@@ -13,8 +13,8 @@ import {
   Bell,
   ChevronRight,
   ShieldCheck,
-  SlidersHorizontal,
 } from "lucide-react";
+import { Avatar } from "./ui";
 
 interface NavItem {
   label: string;
@@ -117,6 +117,9 @@ function Sidebar() {
   );
 }
 
+// No auth in this prototype — the signed-in user is a placeholder.
+const CURRENT_USER = "User name";
+
 function UserMenu() {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -147,10 +150,10 @@ function UserMenu() {
         className="flex w-full items-center justify-between rounded-xl bg-white/[0.06] px-3 py-2.5 text-left ring-1 ring-white/10 transition-colors hover:bg-white/[0.1]"
       >
         <span className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-full bg-white/10">
-            <SlidersHorizontal className="size-4 text-ink-2" />
+          <Avatar name={CURRENT_USER} />
+          <span className="text-sm font-semibold text-white">
+            {CURRENT_USER}
           </span>
-          <span className="text-sm font-semibold text-white">Menu</span>
         </span>
         <ChevronRight
           className={`size-4 text-ink-4 transition-transform ${

@@ -425,6 +425,20 @@ export function setYachtAssetUuid(
   emit();
 }
 
+/** Identity fields edited together from the yacht-details card. */
+export function setYachtDetails(
+  shipyardId: string,
+  yachtId: string,
+  input: { assetUuid: string; mmsi: string; imo: string }
+) {
+  const y = yachtById(shipyardId, yachtId);
+  if (!y) return;
+  y.assetUuid = input.assetUuid.trim() || undefined;
+  y.mmsi = input.mmsi.trim() || null;
+  y.imo = input.imo.trim() || undefined;
+  emit();
+}
+
 /**
  * Move a yacht along its delivery lifecycle, stamping the relevant date. When
  * `date` is omitted, today is used (ISO yyyy-mm-dd).
@@ -549,6 +563,31 @@ export function addTeamMember(
     kind: "regular",
     groupId: sy?.groupId || undefined,
   });
+  emit();
+}
+
+/** Edit one yacht-team member's access (role / power of attorney). */
+export function updateOwnerTeamMember(
+  yachtId: string,
+  memberId: string,
+  patch: { role?: YachtRole; poa?: boolean }
+) {
+  const m = (state.ownerTeamByYacht[yachtId] ?? []).find(
+    (x) => x.id === memberId
+  );
+  if (!m) return;
+  if (patch.role) m.role = patch.role;
+  if (patch.poa !== undefined) m.poa = patch.poa || undefined;
+  emit();
+}
+
+/** Revoke a person's access to this yacht by dropping them from its team. */
+export function removeOwnerTeamMember(yachtId: string, memberId: string) {
+  const list = state.ownerTeamByYacht[yachtId];
+  if (!list) return;
+  const i = list.findIndex((m) => m.id === memberId);
+  if (i === -1) return;
+  list.splice(i, 1);
   emit();
 }
 

@@ -12,7 +12,7 @@ import {
 import {
   yachtLabel,
   yachtStage,
-  formatStamp,
+  formatDay,
   STAGE_ORDER,
   STAGE_META,
   type Yacht,
@@ -124,6 +124,7 @@ export function AllYachtsPanel() {
                 <th className="px-5 py-3 font-medium">Account</th>
                 <th className="px-5 py-3 font-medium">Brand</th>
                 <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium">Shipyard delivery</th>
                 <th className="px-5 py-3 font-medium">Customer delivery</th>
                 <th className="w-10 px-5 py-3" />
               </tr>
@@ -146,9 +147,10 @@ export function AllYachtsPanel() {
                     <StageBadge stage={r.stage} />
                   </td>
                   <td className="px-5 py-4 text-ink-2">
-                    {r.yacht.customerDeliveryDate
-                      ? formatStamp(r.yacht.customerDeliveryDate)
-                      : "—"}
+                    {formatDay(r.yacht.shipyardDeliveryDate)}
+                  </td>
+                  <td className="px-5 py-4 text-ink-2">
+                    {formatDay(r.yacht.customerDeliveryDate)}
                   </td>
                   <td className="px-5 py-4 text-right text-muted">
                     <ChevronRight className="ml-auto size-4" />
@@ -158,7 +160,7 @@ export function AllYachtsPanel() {
               {filtered.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-5 py-10 text-center text-sm text-muted"
                   >
                     No yachts match these filters.

@@ -215,6 +215,7 @@ export default function TeamDetail() {
         open={linkOpen}
         onClose={() => setLinkOpen(false)}
         shipyardId={shipyardId}
+        shipyardName={shipyard.name}
         teamId={teamId}
         teamName={team.name}
       />

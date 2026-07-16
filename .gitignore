@@ -5,4 +5,7 @@ dist-ssr
 .DS_Store
 .vite
 
+# Holds the GitHub Packages auth token for the @sqdesign-ai scope — never commit.
+.npmrc
+
 *.tsbuildinfo

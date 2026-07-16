@@ -19,7 +19,7 @@ import {
   teamsInShipyard,
   yachtsInShipyard,
 } from "../store";
-import { yachtLabel, yachtStage, formatStamp } from "../data/mock";
+import { yachtLabel, yachtStage, formatDay } from "../data/mock";
 import { FEATURES } from "../config";
 
 export default function ShipyardDetail() {
@@ -153,14 +153,10 @@ export default function ShipyardDetail() {
                     </td>
                     <td className="px-5 py-4 text-ink-2">{y.lastUpdate}</td>
                     <td className="px-5 py-4 text-ink-2">
-                      {y.shipyardDeliveryDate
-                        ? formatStamp(y.shipyardDeliveryDate)
-                        : "—"}
+                      {formatDay(y.shipyardDeliveryDate)}
                     </td>
                     <td className="px-5 py-4 text-ink-2">
-                      {y.customerDeliveryDate
-                        ? formatStamp(y.customerDeliveryDate)
-                        : "—"}
+                      {formatDay(y.customerDeliveryDate)}
                     </td>
                     <td className="px-5 py-4 text-right text-muted">
                       <ChevronRight className="ml-auto size-4" />

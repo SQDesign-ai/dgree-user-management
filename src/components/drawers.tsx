@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { Trash2 } from "lucide-react";
+import { Button } from "./ui";
 import {
   Drawer,
   TextField,
@@ -29,8 +31,14 @@ import {
   teamsForYacht,
   setTeamYachtLinks,
   setYachtTeamLinks,
+  updateOwnerTeamMember,
+  removeOwnerTeamMember,
 } from "../store";
-import { yachtLabel, type YachtRole } from "../data/mock";
+import {
+  yachtLabel,
+  type YachtRole,
+  type OwnerTeamMember,
+} from "../data/mock";
 
 // -------------------------------------------------------------------------
 // Create group
@@ -954,12 +962,14 @@ export function AssignYachtsToTeamDrawer({
   open,
   onClose,
   shipyardId,
+  shipyardName,
   teamId,
   teamName,
 }: {
   open: boolean;
   onClose: () => void;
   shipyardId: string;
+  shipyardName: string;
   teamId: string;
   teamName: string;
 }) {
@@ -974,7 +984,7 @@ export function AssignYachtsToTeamDrawer({
       open={open}
       onClose={onClose}
       title={`Assign yachts · ${teamName}`}
-      label="Yachts in this shipyard"
+      label={`Yachts in ${shipyardName}`}
       note="A team can access many yachts, and a yacht can be worked by many teams. The same link shows on the yacht page."
       options={options}
       initial={initial}
@@ -988,12 +998,14 @@ export function AssignTeamsToYachtDrawer({
   open,
   onClose,
   shipyardId,
+  shipyardName,
   yachtId,
   yachtName,
 }: {
   open: boolean;
   onClose: () => void;
   shipyardId: string;
+  shipyardName: string;
   yachtId: string;
   yachtName: string;
 }) {
@@ -1008,7 +1020,7 @@ export function AssignTeamsToYachtDrawer({
       open={open}
       onClose={onClose}
       title={`Assign teams · ${yachtName}`}
-      label="Teams in this shipyard"
+      label={`Teams in ${shipyardName}`}
       note="A yacht can be worked by many teams, and a team can access many yachts. The same link shows on the team page."
       options={options}
       initial={initial}
@@ -1022,4 +1034,86 @@ export const fullName = (r: CreateUserResult) =>
   [r.firstName, r.surname].filter(Boolean).join(" ").trim();
 
 export const roleName = (r: YachtRole) =>
-  ({ owner: "Owner", crew: "Crew", guest: "Guest" }[r]);
+  ({ owner: "Owner", captain: "Captain", crew: "Crew", guest: "Guest" }[r]);
+
+// -------------------------------------------------------------------------
+// One person's access to a yacht — opened from a row in the yacht team.
+// This is where a role is changed, PoA granted, or access revoked.
+// -------------------------------------------------------------------------
+export function YachtTeamMemberDrawer({
+  open,
+  onClose,
+  yachtId,
+  yachtName,
+  member,
+}: {
+  open: boolean;
+  onClose: () => void;
+  yachtId: string;
+  yachtName: string;
+  member: OwnerTeamMember | null;
+}) {
+  const [role, setRole] = useState<YachtRole>("crew");
+  const [poa, setPoa] = useState(false);
+
+  useEffect(() => {
+    if (!open || !member) return;
+    setRole(member.role);
+    setPoa(!!member.poa);
+  }, [open, member]);
+
+  if (!member) return null;
+
+  return (
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={member.name}
+      description={`${member.handle} · access to ${yachtName}`}
+      submitLabel="Save changes"
+      onSubmit={() => {
+        updateOwnerTeamMember(yachtId, member.id, { role, poa });
+        onClose();
+      }}
+    >
+      <SelectField
+        label="Role"
+        value={role}
+        onChange={(v) => setRole(v as YachtRole)}
+        options={(["owner", "captain", "crew", "guest"] as YachtRole[]).map(
+          (r) => ({ value: r, label: roleName(r) })
+        )}
+      />
+
+      {/* PoA is the owner's to give — it only means anything on that role. */}
+      {role === "owner" && (
+        <CheckboxField
+          label="Holds power of attorney (PoA)"
+          checked={poa}
+          onChange={setPoa}
+        />
+      )}
+
+      <Note>
+        The role sets what this person can see and do on {yachtName}. PoA lets
+        the owner authorise 3rd-party data sharing.
+      </Note>
+
+      <div className="border-t border-line pt-4">
+        <Button
+          variant="danger"
+          onClick={() => {
+            removeOwnerTeamMember(yachtId, member.id);
+            onClose();
+          }}
+        >
+          <Trash2 className="size-4" />
+          Remove from yacht team
+        </Button>
+        <p className="mt-2 text-xs text-muted">
+          They immediately lose access to {yachtName}.
+        </p>
+      </div>
+    </Drawer>
+  );
+}

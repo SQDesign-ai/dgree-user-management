@@ -67,7 +67,7 @@ export function Button({
   className = "",
 }: {
   children: ReactNode;
-  variant?: "primary" | "ghost" | "secondary";
+  variant?: "primary" | "ghost" | "secondary" | "danger";
   onClick?: () => void;
   className?: string;
 }) {
@@ -76,6 +76,8 @@ export function Button({
       "bg-brand hover:bg-brand-hover text-white shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset]",
     secondary: "bg-surface-3 hover:bg-hover text-ink-2 border border-line",
     ghost: "bg-transparent hover:bg-white/[0.06] text-ink-3 border border-line",
+    // Destructive, but outlined — it shouldn't out-shout the primary action.
+    danger: "bg-danger/10 hover:bg-danger/20 text-danger border border-danger/40",
   }[variant];
   return (
     <button
