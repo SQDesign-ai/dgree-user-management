@@ -5,7 +5,9 @@ dist-ssr
 .DS_Store
 .vite
 
-# Holds the GitHub Packages auth token for the @sqdesign-ai scope — never commit.
-.npmrc
+# .npmrc IS committed (see below) — it only holds an env-var reference
+# (${GITHUB_TOKEN}), never a literal token, so Vercel's build can read the
+# @sqdesign-ai:registry mapping. The actual secret lives only in each
+# environment's GITHUB_TOKEN (local shell export, Vercel env var).
 
 *.tsbuildinfo
