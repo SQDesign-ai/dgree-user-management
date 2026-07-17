@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "./ui";
 import {
@@ -637,7 +637,6 @@ export function CreateUserDrawer({
   roleLabel = "Role",
   roleOptions,
   onCreate,
-  extra,
 }: {
   open: boolean;
   onClose: () => void;
@@ -646,12 +645,6 @@ export function CreateUserDrawer({
   roleLabel?: string;
   roleOptions: { value: string; label: string }[];
   onCreate: (r: CreateUserResult) => void;
-  /**
-   * Anything the calling context needs to ask that depends on the chosen role —
-   * it receives the current role and decides whether to render. Keeps
-   * role-specific questions out of this otherwise generic drawer.
-   */
-  extra?: (role: string) => ReactNode;
 }) {
   const [firstName, setFirstName] = useState("");
   const [surname, setSurname] = useState("");
@@ -694,7 +687,6 @@ export function CreateUserDrawer({
         onChange={setRole}
         options={roleOptions}
       />
-      {extra?.(role)}
       <Note>
         An invite email is sent — the person sets their own password and accepts
         the T&amp;Cs on first login.

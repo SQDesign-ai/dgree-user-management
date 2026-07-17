@@ -1,8 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { Plus, ChevronRight, Undo2 } from "lucide-react";
-import { Toggle } from "@sqdesign-ai/dgree-ds-react";
-import { MultiSelectField } from "../components/Drawer";
 import { PageHeader } from "../components/PageHeader";
 import {
   Badge,
@@ -28,7 +26,6 @@ import {
   ownerTeamOfYacht,
   teamsForYacht,
   addOwnerTeamMember,
-  setPoaHolders,
   setYachtStage,
   setYachtDetails,
 } from "../store";
@@ -508,8 +505,6 @@ export default function YachtDetail() {
   const [personOpen, setPersonOpen] = useState(false);
   const [teamsOpen, setTeamsOpen] = useState(false);
   const [member, setMember] = useState<OwnerTeamMember | null>(null);
-  const [delegatePoa, setDelegatePoa] = useState(false);
-  const [poaHolderIds, setPoaHolderIds] = useState<string[]>([]);
 
   const shipyard = shipyardById(shipyardId);
   const yacht = yachtById(shipyardId, yachtId);
@@ -517,11 +512,6 @@ export default function YachtDetail() {
 
   const group = groupById(shipyard.groupId);
   const accessTeams = teamsForYacht(shipyardId, yachtId);
-  // Who an incoming owner could hand power of attorney to: anyone already on
-  // the team except an owner, since an owner never holds it.
-  const poaCandidates = ownerTeamOfYacht(yachtId).filter(
-    (m) => m.role !== "owner"
-  );
   const stage = yachtStage(yacht);
   const idx = STAGE_ORDER.indexOf(stage);
   const next = STAGE_ORDER[idx + 1] as YachtStage | undefined;
@@ -640,63 +630,16 @@ export default function YachtDetail() {
           value: r.id,
           label: r.label,
         }))}
-        extra={(role) =>
-          role === "owner" ? (
-            <div className="flex flex-col gap-3">
-              <Toggle
-                checked={delegatePoa}
-                onChange={(e) => {
-                  setDelegatePoa(e.target.checked);
-                  if (!e.target.checked) setPoaHolderIds([]);
-                }}
-                label="Delegate power of attorney"
-              />
-              {delegatePoa && (
-                // Anyone on the team can act for the owner — not just the
-                // captain, more than one person, and including someone who
-                // hasn't signed in yet.
-                <MultiSelectField
-                  label="Power of attorney held by"
-                  options={poaCandidates.map((m) => ({
-                    value: m.id,
-                    label: m.name,
-                    sublabel: `${roleLabel[m.role]}${
-                      m.tcVersion ? "" : " · not signed in yet"
-                    }`,
-                  }))}
-                  selected={poaHolderIds}
-                  onToggle={(id) =>
-                    setPoaHolderIds((ids) =>
-                      ids.includes(id)
-                        ? ids.filter((x) => x !== id)
-                        : [...ids, id]
-                    )
-                  }
-                  avatar
-                  emptyText="No one else on the team yet."
-                />
-              )}
-              <p className="text-xs leading-relaxed text-muted">
-                {delegatePoa
-                  ? "They authorise 3rd-party data sharing on the owner's behalf."
-                  : "No one can authorise 3rd-party data sharing for this owner."}
-              </p>
-            </div>
-          ) : null
-        }
-        onCreate={(r) => {
+        // Naming an attorney is the owner's decision, not the admin's — it
+        // belongs to their first sign-in and their own settings, not to the
+        // invite that creates them.
+        onCreate={(r) =>
           addOwnerTeamMember(yachtId, {
             name: fullName(r),
             role: r.role as YachtRole,
             poa: false,
-          });
-          // Only an owner grants power of attorney, and only to someone else.
-          if (r.role === "owner" && delegatePoa && poaHolderIds.length) {
-            setPoaHolders(yachtId, poaHolderIds);
-          }
-          setDelegatePoa(false);
-          setPoaHolderIds([]);
-        }}
+          })
+        }
       />
 
       <YachtTeamMemberDrawer
