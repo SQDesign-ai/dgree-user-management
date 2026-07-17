@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
+import { Logo as DsLogo } from "@sqdesign-ai/dgree-ds-react";
 import { Avatar } from "./ui";
 
 interface NavItem {
@@ -34,17 +35,12 @@ const primaryNav: NavItem[] = [
 
 function Logo() {
   return (
-    <div className="flex items-center gap-2.5 px-2">
-      <div className="flex size-9 items-center justify-center rounded-lg bg-white/10">
-        <Ship className="size-5 text-white" />
-      </div>
-      <div className="leading-none">
-        <div className="text-lg font-bold tracking-tight text-white">
-          D.gree
-        </div>
-        <div className="mt-1 text-[9px] font-semibold tracking-[0.35em] text-nav-section">
-          YACHTING
-        </div>
+    // The real wordmark from the DS — it paints with --brand-logo, which is
+    // white in dark mode, so it needs no colour of its own here.
+    <div className="px-2">
+      <DsLogo className="h-7 w-auto" />
+      <div className="mt-1.5 text-[9px] font-semibold tracking-[0.35em] text-nav-section">
+        YACHTING
       </div>
     </div>
   );

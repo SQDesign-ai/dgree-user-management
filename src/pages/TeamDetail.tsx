@@ -3,6 +3,7 @@ import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Plus, ChevronRight, Link as LinkIcon, ShieldCheck } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Avatar } from "../components/ui";
+import { PeopleCount } from "@sqdesign-ai/dgree-ds-react";
 import {
   AddTeamPeopleDrawer,
   AssignYachtsToTeamDrawer,
@@ -62,7 +63,8 @@ export default function TeamDetail() {
           { label: team.name },
         ]}
         title={team.name}
-        badge={<Badge tone="success">{team.memberCount} members</Badge>}
+        // A headcount, not a status — this was a green "success" badge.
+        badge={<PeopleCount value={team.memberCount}>members</PeopleCount>}
         subtitle={`${team.description} · ${shipyard.name}`}
       />
 

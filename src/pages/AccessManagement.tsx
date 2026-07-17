@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, ChevronRight, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
-import { Button, Card, SearchInput, Tabs, Avatar } from "../components/ui";
+import { Button, Card, SearchInput, Tabs } from "../components/ui";
+import { PeopleCount } from "@sqdesign-ai/dgree-ds-react";
 import { CreateGroupDrawer, CreateShipyardDrawer } from "../components/drawers";
 import { sailAdvTeams } from "../data/mock";
 import { FEATURES } from "../config";
@@ -158,11 +159,10 @@ function SailAdvPanel() {
             </div>
             <div className="font-semibold text-white">{t.name}</div>
             <div className="mt-0.5 text-sm text-ink-4">{t.description}</div>
+            {/* A SailADV team carries a memberCount and no member list, so the
+                people can be counted but not named — PeopleCount, not avatars. */}
             <div className="mt-4 flex items-center justify-end border-t border-line-soft/60 pt-3">
-              <span className="flex items-center gap-1.5 text-xs text-ink-4">
-                <Avatar name={t.name} size={18} />
-                {t.memberCount} members
-              </span>
+              <PeopleCount value={t.memberCount}>members</PeopleCount>
             </div>
           </Card>
         ))}
