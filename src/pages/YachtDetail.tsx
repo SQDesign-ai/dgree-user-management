@@ -2,7 +2,7 @@ import { type ReactNode, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { Plus, ChevronRight, Undo2 } from "lucide-react";
 import { Toggle } from "@sqdesign-ai/dgree-ds-react";
-import { SelectField } from "../components/Drawer";
+import { MultiSelectField } from "../components/Drawer";
 import { PageHeader } from "../components/PageHeader";
 import {
   Badge,
@@ -28,7 +28,7 @@ import {
   ownerTeamOfYacht,
   teamsForYacht,
   addOwnerTeamMember,
-  setPoaHolder,
+  setPoaHolders,
   setYachtStage,
   setYachtDetails,
 } from "../store";
@@ -509,7 +509,7 @@ export default function YachtDetail() {
   const [teamsOpen, setTeamsOpen] = useState(false);
   const [member, setMember] = useState<OwnerTeamMember | null>(null);
   const [delegatePoa, setDelegatePoa] = useState(false);
-  const [poaHolderId, setPoaHolderId] = useState("");
+  const [poaHolderIds, setPoaHolderIds] = useState<string[]>([]);
 
   const shipyard = shipyardById(shipyardId);
   const yacht = yachtById(shipyardId, yachtId);
@@ -647,28 +647,33 @@ export default function YachtDetail() {
                 checked={delegatePoa}
                 onChange={(e) => {
                   setDelegatePoa(e.target.checked);
-                  if (!e.target.checked) setPoaHolderId("");
+                  if (!e.target.checked) setPoaHolderIds([]);
                 }}
                 label="Delegate power of attorney"
               />
               {delegatePoa && (
                 // Anyone on the team can act for the owner — not just the
-                // captain — including someone who hasn't signed in yet.
-                <SelectField
+                // captain, more than one person, and including someone who
+                // hasn't signed in yet.
+                <MultiSelectField
                   label="Power of attorney held by"
-                  value={poaHolderId}
-                  onChange={setPoaHolderId}
-                  placeholder={
-                    poaCandidates.length
-                      ? "Select a person"
-                      : "No one else on the team yet"
-                  }
                   options={poaCandidates.map((m) => ({
                     value: m.id,
-                    label: `${m.name} · ${roleLabel[m.role]}${
+                    label: m.name,
+                    sublabel: `${roleLabel[m.role]}${
                       m.tcVersion ? "" : " · not signed in yet"
                     }`,
                   }))}
+                  selected={poaHolderIds}
+                  onToggle={(id) =>
+                    setPoaHolderIds((ids) =>
+                      ids.includes(id)
+                        ? ids.filter((x) => x !== id)
+                        : [...ids, id]
+                    )
+                  }
+                  avatar
+                  emptyText="No one else on the team yet."
                 />
               )}
               <p className="text-xs leading-relaxed text-muted">
@@ -686,11 +691,11 @@ export default function YachtDetail() {
             poa: false,
           });
           // Only an owner grants power of attorney, and only to someone else.
-          if (r.role === "owner" && delegatePoa && poaHolderId) {
-            setPoaHolder(yachtId, poaHolderId);
+          if (r.role === "owner" && delegatePoa && poaHolderIds.length) {
+            setPoaHolders(yachtId, poaHolderIds);
           }
           setDelegatePoa(false);
-          setPoaHolderId("");
+          setPoaHolderIds([]);
         }}
       />
 

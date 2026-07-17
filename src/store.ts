@@ -570,15 +570,15 @@ export function addTeamMember(
  * Power of attorney is what an owner grants, not something they hold — it is
  * the authority to act on the owner's behalf, so it always sits with someone
  * else. Any member can hold it whatever their role, including one who has been
- * invited but never signed in; granting it is the owner's decision, not a
- * property of the person.
+ * invited but never signed in, and an owner can grant it to several people at
+ * once.
  *
- * One holder at a time: pass a member id to grant it, or null to withdraw it.
+ * Takes the full set of holders, so granting and withdrawing are the same call.
  */
-export function setPoaHolder(yachtId: string, memberId: string | null) {
+export function setPoaHolders(yachtId: string, memberIds: string[]) {
   const list = state.ownerTeamByYacht[yachtId] ?? [];
   list.forEach((m) => {
-    m.poa = m.id === memberId && m.role !== "owner" ? true : undefined;
+    m.poa = memberIds.includes(m.id) && m.role !== "owner" ? true : undefined;
   });
   emit();
 }
