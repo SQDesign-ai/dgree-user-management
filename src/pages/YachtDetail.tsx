@@ -30,6 +30,8 @@ import {
   setYachtDetails,
 } from "../store";
 import {
+  CURRENT_TC_VERSION,
+  CURRENT_PRIVACY_VERSION,
   yachtLabel,
   yachtStage,
   formatDay,
@@ -204,6 +206,32 @@ function RevertButton({ to, onClick }: { to: string; onClick: () => void }) {
   );
 }
 
+/**
+ * Which version of a document someone accepted, captured at first sign-in.
+ *
+ * Three states worth telling apart: accepted the current version; accepted an
+ * older one (they agreed to something that has since changed); or nothing at
+ * all — an invited person who has never signed in.
+ */
+function DocVersion({
+  accepted,
+  current,
+}: {
+  accepted?: string;
+  current: string;
+}) {
+  if (!accepted) return <span className="text-sm text-muted">—</span>;
+  const stale = accepted !== current;
+  return (
+    <span
+      className={`text-sm ${stale ? "text-warn" : "text-ink-3"}`}
+      title={stale ? `Accepted ${accepted}; current is ${current}` : undefined}
+    >
+      {accepted}
+    </span>
+  );
+}
+
 // -------------------------------------------------------------------------
 // Yacht team — created the moment the yacht reaches the customer.
 // -------------------------------------------------------------------------
@@ -268,6 +296,8 @@ function YachtTeamCard({
             <tr className="border-b border-line bg-surface-2/60 text-left text-[10px] uppercase tracking-wider text-muted-2">
               <th className="px-4 py-2.5 font-semibold">User</th>
               <th className="px-4 py-2.5 font-semibold">Role</th>
+              <th className="px-4 py-2.5 font-semibold">T&amp;C</th>
+              <th className="px-4 py-2.5 font-semibold">Privacy</th>
               <th className="w-10 px-4 py-2.5" />
             </tr>
           </thead>
@@ -293,6 +323,18 @@ function YachtTeamCard({
                     {m.poa && <Tag color="violet">PoA</Tag>}
                   </div>
                 </td>
+                <td className="px-4 py-3">
+                  <DocVersion
+                    accepted={m.tcVersion}
+                    current={CURRENT_TC_VERSION}
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  <DocVersion
+                    accepted={m.privacyVersion}
+                    current={CURRENT_PRIVACY_VERSION}
+                  />
+                </td>
                 <td className="px-4 py-3 text-right text-muted">
                   <ChevronRight className="ml-auto size-4" />
                 </td>
@@ -301,7 +343,7 @@ function YachtTeamCard({
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={3}
+                  colSpan={5}
                   className="px-4 py-8 text-center text-xs text-muted"
                 >
                   No one with this role yet.

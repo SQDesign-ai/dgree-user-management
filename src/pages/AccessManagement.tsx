@@ -34,6 +34,12 @@ function AccountCard({
   onAddShipyard: (groupId: string) => void;
 }) {
   const navigate = useNavigate();
+  // Users are counted per shipyard, so an account's headcount is the sum of
+  // its own. This is the number the licence agreement is measured against.
+  const users = group.shipyards.reduce(
+    (n: number, s: Shipyard) => n + s.users,
+    0
+  );
   return (
     <Card className="mb-4 break-inside-avoid">
       <button
@@ -41,9 +47,12 @@ function AccountCard({
         className="flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-hover/30"
       >
         <span className="font-semibold text-white">{group.name} account</span>
-        <span className="text-xs text-muted">
-          {group.shipyards.length}{" "}
-          {group.shipyards.length === 1 ? "shipyard" : "shipyards"}
+        <span className="flex items-center gap-3">
+          <PeopleCount value={users} />
+          <span className="text-xs text-muted">
+            {group.shipyards.length}{" "}
+            {group.shipyards.length === 1 ? "shipyard" : "shipyards"}
+          </span>
         </span>
       </button>
 

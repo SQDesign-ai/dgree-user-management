@@ -101,7 +101,19 @@ export interface OwnerTeamMember {
   handle: string;
   role: YachtRole;
   poa?: boolean;
+  /**
+   * Which version of each document this person accepted, captured at first
+   * sign-in. Undefined until they do — an invited person who has never signed
+   * in has accepted nothing, and an older version means they accepted a
+   * document that has since changed.
+   */
+  tcVersion?: string;
+  privacyVersion?: string;
 }
+
+/** The documents currently in force — what a new sign-in would accept. */
+export const CURRENT_TC_VERSION = "v2.1";
+export const CURRENT_PRIVACY_VERSION = "v1.4";
 
 export interface DataAccessGrant {
   id: string;
@@ -235,10 +247,12 @@ export const teamYachtLinks: TeamYachtLink[] = [
 // Owner-team roster for a specific yacht (keyed by yacht id).
 export const ownerTeamByYacht: Record<string, OwnerTeamMember[]> = {
   "sl50-171": [
-    { id: "m-rossi", name: "Marco Rossi", handle: "@m_rossi", role: "owner", poa: true },
-    { id: "l-bianchi", name: "Luca Bianchi", handle: "@l_bianchi", role: "captain" },
-    { id: "g-conti", name: "Giulia Conti", handle: "@g_conti", role: "crew" },
-    { id: "p-neri", name: "Paolo Neri", handle: "@p_neri", role: "crew" },
+    { id: "m-rossi", name: "Marco Rossi", handle: "@m_rossi", role: "owner", poa: true, tcVersion: "v2.1", privacyVersion: "v1.4" },
+    { id: "l-bianchi", name: "Luca Bianchi", handle: "@l_bianchi", role: "captain", tcVersion: "v2.1", privacyVersion: "v1.4" },
+    // Accepted an earlier T&C — signed in before v2.1 went out.
+    { id: "g-conti", name: "Giulia Conti", handle: "@g_conti", role: "crew", tcVersion: "v2.0", privacyVersion: "v1.4" },
+    { id: "p-neri", name: "Paolo Neri", handle: "@p_neri", role: "crew", tcVersion: "v2.1", privacyVersion: "v1.4" },
+    // Invited but never signed in, so has accepted nothing yet.
     { id: "s-marino", name: "Sofia Marino", handle: "@s_marino", role: "guest" },
   ],
 };
