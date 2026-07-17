@@ -2,6 +2,7 @@ import { type ReactNode, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { Plus, ChevronRight, Undo2 } from "lucide-react";
 import { Toggle } from "@sqdesign-ai/dgree-ds-react";
+import { SelectField } from "../components/Drawer";
 import { PageHeader } from "../components/PageHeader";
 import {
   Badge,
@@ -27,7 +28,7 @@ import {
   ownerTeamOfYacht,
   teamsForYacht,
   addOwnerTeamMember,
-  setPoaDelegatedToCaptain,
+  setPoaHolder,
   setYachtStage,
   setYachtDetails,
 } from "../store";
@@ -508,6 +509,7 @@ export default function YachtDetail() {
   const [teamsOpen, setTeamsOpen] = useState(false);
   const [member, setMember] = useState<OwnerTeamMember | null>(null);
   const [delegatePoa, setDelegatePoa] = useState(false);
+  const [poaHolderId, setPoaHolderId] = useState("");
 
   const shipyard = shipyardById(shipyardId);
   const yacht = yachtById(shipyardId, yachtId);
@@ -515,6 +517,11 @@ export default function YachtDetail() {
 
   const group = groupById(shipyard.groupId);
   const accessTeams = teamsForYacht(shipyardId, yachtId);
+  // Who an incoming owner could hand power of attorney to: anyone already on
+  // the team except an owner, since an owner never holds it.
+  const poaCandidates = ownerTeamOfYacht(yachtId).filter(
+    (m) => m.role !== "owner"
+  );
   const stage = yachtStage(yacht);
   const idx = STAGE_ORDER.indexOf(stage);
   const next = STAGE_ORDER[idx + 1] as YachtStage | undefined;
@@ -635,16 +642,39 @@ export default function YachtDetail() {
         }))}
         extra={(role) =>
           role === "owner" ? (
-            <div>
+            <div className="flex flex-col gap-3">
               <Toggle
                 checked={delegatePoa}
-                onChange={(e) => setDelegatePoa(e.target.checked)}
-                label="Delegate power of attorney to the captain"
+                onChange={(e) => {
+                  setDelegatePoa(e.target.checked);
+                  if (!e.target.checked) setPoaHolderId("");
+                }}
+                label="Delegate power of attorney"
               />
-              <p className="mt-1.5 text-xs leading-relaxed text-muted">
+              {delegatePoa && (
+                // Anyone on the team can act for the owner — not just the
+                // captain — including someone who hasn't signed in yet.
+                <SelectField
+                  label="Power of attorney held by"
+                  value={poaHolderId}
+                  onChange={setPoaHolderId}
+                  placeholder={
+                    poaCandidates.length
+                      ? "Select a person"
+                      : "No one else on the team yet"
+                  }
+                  options={poaCandidates.map((m) => ({
+                    value: m.id,
+                    label: `${m.name} · ${roleLabel[m.role]}${
+                      m.tcVersion ? "" : " · not signed in yet"
+                    }`,
+                  }))}
+                />
+              )}
+              <p className="text-xs leading-relaxed text-muted">
                 {delegatePoa
-                  ? "The captain will authorise 3rd-party data sharing on the owner's behalf."
-                  : "The owner keeps power of attorney and authorises data sharing themselves."}
+                  ? "They authorise 3rd-party data sharing on the owner's behalf."
+                  : "No one can authorise 3rd-party data sharing for this owner."}
               </p>
             </div>
           ) : null
@@ -655,11 +685,12 @@ export default function YachtDetail() {
             role: r.role as YachtRole,
             poa: false,
           });
-          // Only an owner brings PoA with them, so only they can hand it over.
-          if (r.role === "owner") {
-            setPoaDelegatedToCaptain(yachtId, delegatePoa);
-            setDelegatePoa(false);
+          // Only an owner grants power of attorney, and only to someone else.
+          if (r.role === "owner" && delegatePoa && poaHolderId) {
+            setPoaHolder(yachtId, poaHolderId);
           }
+          setDelegatePoa(false);
+          setPoaHolderId("");
         }}
       />
 

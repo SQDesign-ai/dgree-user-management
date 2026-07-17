@@ -567,18 +567,18 @@ export function addTeamMember(
 }
 
 /**
- * Power of attorney is the owner's to hold or to hand over, and only one person
- * on a yacht holds it — so this sets the holder rather than toggling a flag.
- * Delegating with no captain on the team yet leaves it with the owner; it isn't
- * dropped on the floor.
+ * Power of attorney is what an owner grants, not something they hold — it is
+ * the authority to act on the owner's behalf, so it always sits with someone
+ * else. Any member can hold it whatever their role, including one who has been
+ * invited but never signed in; granting it is the owner's decision, not a
+ * property of the person.
+ *
+ * One holder at a time: pass a member id to grant it, or null to withdraw it.
  */
-export function setPoaDelegatedToCaptain(yachtId: string, delegate: boolean) {
+export function setPoaHolder(yachtId: string, memberId: string | null) {
   const list = state.ownerTeamByYacht[yachtId] ?? [];
-  const owner = list.find((m) => m.role === "owner");
-  const captain = list.find((m) => m.role === "captain");
-  const holder = (delegate ? captain : owner) ?? owner;
   list.forEach((m) => {
-    m.poa = m === holder ? true : undefined;
+    m.poa = m.id === memberId && m.role !== "owner" ? true : undefined;
   });
   emit();
 }

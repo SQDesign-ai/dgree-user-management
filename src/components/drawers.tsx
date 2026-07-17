@@ -1062,12 +1062,10 @@ export function YachtTeamMemberDrawer({
   member: OwnerTeamMember | null;
 }) {
   const [role, setRole] = useState<YachtRole>("crew");
-  const [poa, setPoa] = useState(false);
 
   useEffect(() => {
     if (!open || !member) return;
     setRole(member.role);
-    setPoa(!!member.poa);
   }, [open, member]);
 
   if (!member) return null;
@@ -1080,7 +1078,9 @@ export function YachtTeamMemberDrawer({
       description={`${member.handle} · access to ${yachtName}`}
       submitLabel="Save changes"
       onSubmit={() => {
-        updateOwnerTeamMember(yachtId, member.id, { role, poa });
+        // Role only — power of attorney is the owner's grant, made where the
+        // owner is, so this drawer must not quietly write it back.
+        updateOwnerTeamMember(yachtId, member.id, { role });
         onClose();
       }}
     >
@@ -1093,18 +1093,11 @@ export function YachtTeamMemberDrawer({
         )}
       />
 
-      {/* PoA is the owner's to give — it only means anything on that role. */}
-      {role === "owner" && (
-        <CheckboxField
-          label="Holds power of attorney (PoA)"
-          checked={poa}
-          onChange={setPoa}
-        />
-      )}
-
       <Note>
-        The role sets what this person can see and do on {yachtName}. PoA lets
-        the owner authorise 3rd-party data sharing.
+        The role sets what this person can see and do on {yachtName}.
+        {role !== "owner" && member.poa
+          ? " They hold power of attorney, so they authorise 3rd-party data sharing on the owner's behalf."
+          : ""}
       </Note>
 
       <div className="border-t border-line pt-4">
