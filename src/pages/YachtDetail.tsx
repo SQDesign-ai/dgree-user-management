@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { Plus, ChevronRight, Undo2 } from "lucide-react";
+import { Toggle } from "@sqdesign-ai/dgree-ds-react";
 import { PageHeader } from "../components/PageHeader";
 import {
   Badge,
@@ -26,6 +27,7 @@ import {
   ownerTeamOfYacht,
   teamsForYacht,
   addOwnerTeamMember,
+  setPoaDelegatedToCaptain,
   setYachtStage,
   setYachtDetails,
 } from "../store";
@@ -505,6 +507,7 @@ export default function YachtDetail() {
   const [personOpen, setPersonOpen] = useState(false);
   const [teamsOpen, setTeamsOpen] = useState(false);
   const [member, setMember] = useState<OwnerTeamMember | null>(null);
+  const [delegatePoa, setDelegatePoa] = useState(false);
 
   const shipyard = shipyardById(shipyardId);
   const yacht = yachtById(shipyardId, yachtId);
@@ -630,13 +633,34 @@ export default function YachtDetail() {
           value: r.id,
           label: r.label,
         }))}
-        onCreate={(r) =>
+        extra={(role) =>
+          role === "owner" ? (
+            <div>
+              <Toggle
+                checked={delegatePoa}
+                onChange={(e) => setDelegatePoa(e.target.checked)}
+                label="Delegate power of attorney to the captain"
+              />
+              <p className="mt-1.5 text-xs leading-relaxed text-muted">
+                {delegatePoa
+                  ? "The captain will authorise 3rd-party data sharing on the owner's behalf."
+                  : "The owner keeps power of attorney and authorises data sharing themselves."}
+              </p>
+            </div>
+          ) : null
+        }
+        onCreate={(r) => {
           addOwnerTeamMember(yachtId, {
             name: fullName(r),
             role: r.role as YachtRole,
             poa: false,
-          })
-        }
+          });
+          // Only an owner brings PoA with them, so only they can hand it over.
+          if (r.role === "owner") {
+            setPoaDelegatedToCaptain(yachtId, delegatePoa);
+            setDelegatePoa(false);
+          }
+        }}
       />
 
       <YachtTeamMemberDrawer
