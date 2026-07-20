@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
-import { Plus, ChevronRight, Link as LinkIcon, ShieldCheck } from "lucide-react";
+import { Plus, ChevronRight, ShieldCheck } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Avatar } from "../components/ui";
 import { PeopleCount } from "@sqdesign-ai/dgree-ds-react";
@@ -188,14 +188,6 @@ export default function TeamDetail() {
               </div>
             </Card>
           ))}
-
-          <button
-            onClick={() => setLinkOpen(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line py-3 text-sm font-medium text-ink-4 transition-colors hover:border-brand/60 hover:text-ink-2"
-          >
-            <LinkIcon className="size-4" />
-            {linkedYachts.length ? "Manage linked yachts" : "Link a yacht"}
-          </button>
 
           <p className="mt-3 flex gap-2 text-xs leading-relaxed text-muted">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-nav-section" />

@@ -4,7 +4,6 @@ import { Button, Avatar, Badge } from "./ui";
 import {
   Drawer,
   TextField,
-  TextareaField,
   SelectField,
   DateField,
   CheckboxField,
@@ -52,7 +51,6 @@ export function CreateAccountDrawer({
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [brandIds, setBrandIds] = useState<string[]>([]);
   const available = unassignedBrands();
 
@@ -65,7 +63,6 @@ export function CreateAccountDrawer({
   function submit() {
     addAccount(name, { brandIds });
     setName("");
-    setDescription("");
     setBrandIds([]);
     onClose();
   }
@@ -85,12 +82,6 @@ export function CreateAccountDrawer({
         onChange={setName}
         placeholder="e.g. Azimut-Benetti"
         autoFocus
-      />
-      <TextareaField
-        label="Description"
-        value={description}
-        onChange={setDescription}
-        placeholder="Optional"
       />
       <MultiSelectField
         label="Attach brands"
