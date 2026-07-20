@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Trash2 } from "lucide-react";
-import { Button } from "./ui";
+import { Trash2, Search, UserPlus, Check, X } from "lucide-react";
+import { Button, Avatar, Badge } from "./ui";
 import {
   Drawer,
   TextField,
@@ -814,46 +814,65 @@ export function AddTeamPeopleDrawer({
   teamId: string;
   teamName: string;
 }) {
+  const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
-  const [firstName, setFirstName] = useState("");
-  const [surname, setSurname] = useState("");
-  const [email, setEmail] = useState("");
+  const [invites, setInvites] = useState<string[]>([]);
 
   // Reset every time the drawer is opened.
   useEffect(() => {
     if (!open) return;
+    setQuery("");
     setSelected([]);
-    setFirstName("");
-    setSurname("");
-    setEmail("");
+    setInvites([]);
   }, [open]);
 
   const candidates = candidatePeopleForShipyard(shipyardId, teamId);
-  const hasInvite = !!firstName.trim();
-  const canSubmit = selected.length > 0 || hasInvite;
+  const q = query.trim();
+  const lower = q.toLowerCase();
+  const matches = lower
+    ? candidates.filter(
+        (p) =>
+          p.name.toLowerCase().includes(lower) ||
+          p.handle.toLowerCase().includes(lower)
+      )
+    : candidates;
+
+  // Only an address can be invited — that's what the invite is sent to.
+  const isEmail = /^\S+@\S+\.\S+$/.test(q);
+  const canInvite = isEmail && !invites.includes(q.toLowerCase());
+
+  const n = selected.length;
+  const m = invites.length;
+  const submitLabel =
+    n && m
+      ? `Add ${n} · invite ${m}`
+      : n
+      ? `Add ${n} ${n === 1 ? "person" : "people"}`
+      : m
+      ? `Invite ${m}`
+      : "Add people";
 
   function toggle(id: string) {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   }
 
-  function submit() {
-    selected.forEach((id) => addExistingTeamMember(teamId, shipyardId, id));
-    if (hasInvite) {
-      const name = [firstName, surname].filter(Boolean).join(" ").trim();
-      addTeamMember(teamId, shipyardId, { name, status: "invited" });
-    }
-    onClose();
+  function invite() {
+    if (!canInvite) return;
+    setInvites((v) => [...v, q.toLowerCase()]);
+    setQuery(""); // ready for the next one, so several can be queued up
   }
 
-  const n = selected.length;
-  const submitLabel =
-    n && hasInvite
-      ? `Add ${n} + invite`
-      : n
-      ? `Add ${n} ${n === 1 ? "person" : "people"}`
-      : hasInvite
-      ? "Send invite"
-      : "Add people";
+  function submit() {
+    selected.forEach((id) => addExistingTeamMember(teamId, shipyardId, id));
+    invites.forEach((email) =>
+      addTeamMember(teamId, shipyardId, {
+        name: nameFromEmail(email),
+        handle: email,
+        status: "invited",
+      })
+    );
+    onClose();
+  }
 
   return (
     <Drawer
@@ -861,42 +880,124 @@ export function AddTeamPeopleDrawer({
       onClose={onClose}
       title={`Add people to ${teamName}`}
       submitLabel={submitLabel}
-      submitDisabled={!canSubmit}
+      submitDisabled={!n && !m}
       onSubmit={submit}
     >
-      {/* Invite a brand-new person */}
-      <div className="space-y-3 rounded-lg border border-line bg-[#0e2149]/40 p-3">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-2">
-          Invite a new person
-        </div>
-        <Row>
-          <TextField label="Name" value={firstName} onChange={setFirstName} placeholder="e.g. Luca" />
-          <TextField label="Surname" value={surname} onChange={setSurname} placeholder="e.g. Bianchi" />
-        </Row>
-        <TextField
-          label="Email"
-          type="email"
-          value={email}
-          onChange={setEmail}
-          placeholder="name@company.com"
+      {/* One field for both jobs: it filters the directory, and when what you
+          typed is an address that nobody matches, it offers to invite it. */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && canInvite) {
+              e.preventDefault();
+              invite();
+            }
+          }}
+          placeholder="Search people, or type an email to invite"
+          className="w-full rounded-lg border border-line bg-[#0e2149] py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
         />
       </div>
 
-      {/* Pick existing directory people */}
-      <MultiSelectField
-        label="Add existing people"
-        avatar
-        options={candidates.map((p) => ({
-          value: p.id,
-          label: p.name,
-          sublabel: p.handle,
-          badge: p.kind === "sail-adv" ? "SailADV" : undefined,
-        }))}
-        selected={selected}
-        onToggle={toggle}
-        emptyText="Everyone in this group is already on the team."
-      />
+      {/* Queued invites — these are people who don't exist yet, so they can't
+          live in the list below. */}
+      {invites.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {invites.map((email) => (
+            <span
+              key={email}
+              className="inline-flex items-center gap-1.5 rounded-full bg-brand/15 py-1 pl-3 pr-1.5 text-xs text-[#afcbff]"
+            >
+              {email}
+              <button
+                onClick={() =>
+                  setInvites((v) => v.filter((x) => x !== email))
+                }
+                aria-label={`Remove ${email}`}
+                className="rounded-full p-0.5 transition-colors hover:bg-white/10"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="max-h-72 space-y-1.5 overflow-y-auto rounded-lg border border-line bg-[#0e2149]/40 p-1.5">
+        {canInvite && (
+          <button
+            type="button"
+            onClick={invite}
+            className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-white/[0.04]"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand/15 text-brand">
+              <UserPlus className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1 leading-tight">
+              <span className="block text-sm font-medium text-white">
+                Invite {q}
+              </span>
+              <span className="block text-xs text-muted">
+                Not in the directory — they&apos;ll get an invite email
+              </span>
+            </span>
+          </button>
+        )}
+
+        {matches.map((p) => {
+          const on = selected.includes(p.id);
+          return (
+            <button
+              type="button"
+              key={p.id}
+              onClick={() => toggle(p.id)}
+              className={`flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors ${
+                on ? "bg-brand/15" : "hover:bg-white/[0.04]"
+              }`}
+            >
+              <span
+                className={`flex size-4 shrink-0 items-center justify-center rounded border ${
+                  on
+                    ? "border-brand bg-brand text-white"
+                    : "border-line bg-transparent"
+                }`}
+              >
+                {on && <Check className="size-3" strokeWidth={3} />}
+              </span>
+              <Avatar name={p.name} size={28} />
+              <span className="min-w-0 flex-1 leading-tight">
+                <span className="block text-sm text-white">{p.name}</span>
+                <span className="block text-xs text-muted">{p.handle}</span>
+              </span>
+              {p.kind === "sail-adv" && <Badge tone="brand">SailADV</Badge>}
+            </button>
+          );
+        })}
+
+        {matches.length === 0 && !canInvite && (
+          <p className="px-2.5 py-6 text-center text-xs text-muted">
+            {q
+              ? "No one matches. Type a full email address to invite them."
+              : "Everyone in this group is already on the team."}
+          </p>
+        )}
+      </div>
     </Drawer>
+  );
+}
+
+/** A stand-in name until the person sets their own on first sign-in. */
+function nameFromEmail(email: string) {
+  return (
+    email
+      .split("@")[0]
+      .split(/[._-]+/)
+      .filter(Boolean)
+      .map((w) => w[0].toUpperCase() + w.slice(1))
+      .join(" ") || email
   );
 }
 
