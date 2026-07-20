@@ -93,7 +93,7 @@ export function CreateAccountDrawer({
         placeholder="Optional"
       />
       <MultiSelectField
-        label="Attach brands (brands)"
+        label="Attach brands"
         options={available.map((s) => ({
           value: s.id,
           label: s.name,
