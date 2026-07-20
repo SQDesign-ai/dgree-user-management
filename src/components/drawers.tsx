@@ -504,7 +504,6 @@ export function CreateTeamDrawer({
         placeholder="What this team does"
       />
       <div>
-        <div className="mb-1.5 text-xs font-semibold text-ink-3">Add people</div>
         <PeoplePicker
           candidates={candidatePeopleForShipyard(activeShipyard)}
           selected={memberIds}
@@ -916,17 +915,21 @@ function PeoplePicker({
 
   const q = query.trim();
   const lower = q.toLowerCase();
-  const matches = lower
-    ? candidates.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lower) ||
-          p.handle.toLowerCase().includes(lower)
-      )
-    : candidates;
 
   // Only an address can be invited — that's what the invite is sent to.
   const isEmail = /^\S+@\S+\.\S+$/.test(q);
   const canInvite = isEmail && !invites.includes(lower);
+
+  // A full address is an invite, not a search, so it shouldn't empty the list:
+  // you may want to tick someone in the same breath as inviting a newcomer.
+  const matches =
+    lower && !isEmail
+      ? candidates.filter(
+          (p) =>
+            p.name.toLowerCase().includes(lower) ||
+            p.handle.toLowerCase().includes(lower)
+        )
+      : candidates;
 
   function invite() {
     if (!canInvite) return;
@@ -936,6 +939,15 @@ function PeoplePicker({
 
   return (
     <div className="space-y-3">
+      <div>
+        <p className="text-sm font-medium text-white">
+          Who do you want to add?
+        </p>
+        <p className="mt-0.5 text-xs text-muted">
+          You can add and invite several people at once.
+        </p>
+      </div>
+
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
         <input
