@@ -150,11 +150,6 @@ export const brands: Brand[] = [
   { id: "van-dutch", name: "Van Dutch", accountId: "cantiere-del-pardo", users: 0, yachts: 0, teams: 3 },
   { id: "pardo-yachts", name: "Pardo Yachts", accountId: "cantiere-del-pardo", users: 0, yachts: 0, teams: 3 },
   { id: "nautor", name: "Nautor", accountId: "sanlorenzo", users: 0, yachts: 0, teams: 3 },
-  // Unassigned brands — not yet assigned to any account. These are the pool the
-  // "Create account" flow lets you attach (accountId === "").
-  { id: "perini-navi", name: "Perini Navi", accountId: "", users: 0, yachts: 0, teams: 0 },
-  { id: "wally", name: "Wally", accountId: "", users: 0, yachts: 0, teams: 0 },
-  { id: "mangusta", name: "Mangusta", accountId: "", users: 0, yachts: 0, teams: 0 },
 ];
 
 // Account-level people (keyed by account id).

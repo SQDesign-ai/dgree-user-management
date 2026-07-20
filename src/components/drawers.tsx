@@ -19,7 +19,6 @@ import {
   addYacht,
   getAccounts,
   getBrands,
-  unassignedBrands,
   candidatePeopleForBrand,
   candidatePeopleForAccount,
   addTeamMember,
@@ -47,19 +46,10 @@ export function CreateAccountDrawer({
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
-  const [brandIds, setBrandIds] = useState<string[]>([]);
-  const available = unassignedBrands();
-
-  function toggleBrand(id: string) {
-    setBrandIds((ids) =>
-      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
-    );
-  }
 
   function submit() {
-    addAccount(name, { brandIds });
+    addAccount(name);
     setName("");
-    setBrandIds([]);
     onClose();
   }
 
@@ -79,20 +69,9 @@ export function CreateAccountDrawer({
         placeholder="e.g. Azimut-Benetti"
         autoFocus
       />
-      <MultiSelectField
-        label="Attach brands"
-        options={available.map((s) => ({
-          value: s.id,
-          label: s.name,
-          sublabel: s.yachts > 0 ? `${s.yachts} yachts` : "No yachts yet",
-        }))}
-        selected={brandIds}
-        onToggle={toggleBrand}
-        emptyText="Every brand is already assigned to an account."
-      />
       <Note>
-        Only brands not yet in an account are listed. You can also add more
-        brands afterwards from the account page.
+        Add the account&apos;s brands from the account page once it exists — a
+        brand always belongs to one.
       </Note>
     </Drawer>
   );
@@ -687,7 +666,6 @@ export function AddYachtDrawer({
   const accounts = getAccounts();
   const brands = getBrands();
   const [uuid, setUuid] = useState("");
-  const [account, setAccount] = useState("");
   const [brand, setBrand] = useState("");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -696,14 +674,17 @@ export function AddYachtDrawer({
   useEffect(() => {
     if (!open) return;
     setUuid("");
-    setAccount("");
     setBrand("");
     setCode("");
     setName("");
     setMmsi("");
   }, [open]);
 
-  const brandOptions = brands.filter((s) => s.accountId === account);
+  // A brand belongs to exactly one account, so the account follows from the
+  // brand rather than being a second thing to get right.
+  const accountName =
+    accounts.find((a) => a.id === brands.find((b) => b.id === brand)?.accountId)
+      ?.name ?? "";
   const canSubmit = !!brand && !!code.trim();
 
   function submit() {
@@ -730,22 +711,13 @@ export function AddYachtDrawer({
       />
       <Row>
         <SelectField
-          label="Account"
-          value={account}
-          onChange={(v) => {
-            setAccount(v);
-            setBrand("");
-          }}
-          placeholder="Select account"
-          options={accounts.map((g) => ({ value: g.id, label: g.name }))}
-        />
-        <SelectField
           label="Brand"
           value={brand}
           onChange={setBrand}
-          placeholder={account ? "Select brand" : "Pick an account first"}
-          options={brandOptions.map((s) => ({ value: s.id, label: s.name }))}
+          placeholder="Select brand"
+          options={brands.map((s) => ({ value: s.id, label: s.name }))}
         />
+        <AssignField label="Account" value={accountName || "—"} />
       </Row>
       <Row>
         <TextField

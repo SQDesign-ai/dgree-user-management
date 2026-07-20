@@ -166,9 +166,6 @@ export const brandById = (id: string) =>
   state.brands.find((s) => s.id === id);
 export const brandsInAccount = (accountId: string) =>
   state.brands.filter((s) => s.accountId === accountId);
-/** Brands not yet attached to any account — the pool for "Create account". */
-export const unassignedBrands = () =>
-  state.brands.filter((s) => !s.accountId);
 export const peopleInAccount = (accountId: string) =>
   state.peopleByAccount[accountId] ?? [];
 export const getDirectory = () => state.people;
@@ -284,17 +281,13 @@ function linkPersonToTeam(teamId: string, brandId: string, personId: string) {
   if (team) team.memberCount += 1;
 }
 
-export function addAccount(
-  name: string,
-  opts?: { brandIds?: string[] }
-): string {
+/**
+ * An account starts empty: brands are created under it afterwards, since a
+ * brand only exists as part of one.
+ */
+export function addAccount(name: string): string {
   const id = uniqueId(slugify(name), (i) => !!accountById(i));
   state.accounts.push({ id, name: name.trim() });
-  // Attach any selected unassigned brands to the new account.
-  (opts?.brandIds ?? []).forEach((sid) => {
-    const sy = brandById(sid);
-    if (sy && !sy.accountId) sy.accountId = id;
-  });
   emit();
   return id;
 }
