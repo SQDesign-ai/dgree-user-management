@@ -583,6 +583,25 @@ export function setPoaHolders(yachtId: string, memberIds: string[]) {
   emit();
 }
 
+/**
+ * Record what someone accepted at sign-in. Stores the version rather than a
+ * yes/no, so a later document change is visible as a version behind rather than
+ * silently reading as "accepted".
+ */
+export function acceptDocuments(
+  yachtId: string,
+  memberId: string,
+  input: { tcVersion: string; privacyVersion: string }
+) {
+  const m = (state.ownerTeamByYacht[yachtId] ?? []).find(
+    (x) => x.id === memberId
+  );
+  if (!m) return;
+  m.tcVersion = input.tcVersion;
+  m.privacyVersion = input.privacyVersion;
+  emit();
+}
+
 /** Edit one yacht-team member's access (role / power of attorney). */
 export function updateOwnerTeamMember(
   yachtId: string,

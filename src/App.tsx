@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import Layout from "./components/Layout";
+import FirstLogin from "./pages/FirstLogin";
 import AccessManagement from "./pages/AccessManagement";
 import FleetPage from "./pages/FleetPage";
 import GroupDetail from "./pages/GroupDetail";
@@ -19,6 +20,10 @@ export default function App() {
   // Single prototype, two-page layout: Access management + D.gree fleet.
   return (
     <Routes>
+      {/* Outside the layout, and deliberately not a gate: the prototype stays
+          open, and this plays the sign-in flow for whichever person you pick. */}
+      <Route path="/first-login" element={<FirstLogin />} />
+
       <Route element={<LayoutRoute />}>
         <Route path="/" element={<AccessManagement />} />
         <Route path="/fleet" element={<FleetPage />} />
