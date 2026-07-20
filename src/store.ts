@@ -307,10 +307,10 @@ export function addExistingTeamMember(
   emit();
 }
 
-const STANDARD_DEPARTMENTS: [string, string][] = [
-  ["Tech Dep", "Technical department"],
-  ["Customer Care", "Customer support"],
-  ["Warranty Dep", "Warranty & after-sales"],
+const STANDARD_DEPARTMENTS = [
+  "Tech Dep",
+  "Customer Care",
+  "Warranty Dep",
 ];
 
 export function addShipyard(
@@ -332,12 +332,11 @@ export function addShipyard(
   state.yachtsByShipyard[id] = [];
 
   if (opts?.standardDepartments) {
-    STANDARD_DEPARTMENTS.forEach(([n, d]) => {
+    STANDARD_DEPARTMENTS.forEach((n) => {
       state.teamsByShipyard[id].push({
         id: slugify(n),
         shipyardId: id,
         name: n,
-        description: d,
         memberCount: 0,
         assignedBoats: 0,
       });
@@ -351,7 +350,7 @@ export function addShipyard(
 
 export function addTeam(
   shipyardId: string,
-  input: { name: string; description: string; memberIds?: string[] }
+  input: { name: string; memberIds?: string[] }
 ): string {
   const id = uniqueId(
     slugify(input.name),
@@ -362,7 +361,6 @@ export function addTeam(
     id,
     shipyardId,
     name: input.name.trim(),
-    description: input.description.trim(),
     memberCount: 0,
     assignedBoats: 0,
   });

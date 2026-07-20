@@ -97,9 +97,6 @@ export default function ShipyardDetail() {
                       <Users className="size-5" />
                     </div>
                     <div className="font-semibold text-white">{t.name}</div>
-                    <div className="mt-0.5 text-sm text-ink-4">
-                      {t.description}
-                    </div>
                     <div className="mt-4 flex items-center justify-between border-t border-line-soft/60 pt-3">
                       <Badge tone="brand">{t.assignedBoats} boats</Badge>
                       <span className="flex items-center gap-1.5 text-xs text-ink-4">

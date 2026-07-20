@@ -65,7 +65,7 @@ export default function TeamDetail() {
         title={team.name}
         // A headcount, not a status — this was a green "success" badge.
         badge={<PeopleCount value={team.memberCount}>members</PeopleCount>}
-        subtitle={`${team.description} · ${shipyard.name}`}
+        subtitle={shipyard.name}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">

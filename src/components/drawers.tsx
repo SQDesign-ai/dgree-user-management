@@ -117,16 +117,15 @@ export function CreateGroupDrawer({
 // existing people to each team.
 // -------------------------------------------------------------------------
 
-const STANDARD_DEPARTMENTS: [string, string][] = [
-  ["Tech Dep", "Technical department"],
-  ["Customer Care", "Customer support"],
-  ["Warranty Dep", "Warranty & after-sales"],
+const STANDARD_DEPARTMENTS = [
+  "Tech Dep",
+  "Customer Care",
+  "Warranty Dep",
 ];
 
 interface DraftTeam {
   key: number;
   name: string;
-  description: string;
   memberIds: string[];
 }
 
@@ -203,11 +202,10 @@ export function CreateShipyardDrawer({
     setTeams((ts) => [
       ...ts,
       ...STANDARD_DEPARTMENTS.filter(
-        ([n]) => !ts.some((t) => t.name.trim().toLowerCase() === n.toLowerCase())
-      ).map(([n, d]) => ({
+        (n) => !ts.some((t) => t.name.trim().toLowerCase() === n.toLowerCase())
+      ).map((n) => ({
         key: newKey(),
         name: n,
-        description: d,
         memberIds: [] as string[],
       })),
     ]);
@@ -215,7 +213,7 @@ export function CreateShipyardDrawer({
   function addBlankTeam() {
     setTeams((ts) => [
       ...ts,
-      { key: newKey(), name: "", description: "", memberIds: [] },
+      { key: newKey(), name: "", memberIds: [] },
     ]);
   }
   function updateTeam(key: number, patch: Partial<DraftTeam>) {
@@ -264,7 +262,6 @@ export function CreateShipyardDrawer({
       validTeams.forEach((t) =>
         addTeam(sid, {
           name: t.name,
-          description: t.description,
           memberIds: t.memberIds,
         })
       );
@@ -384,12 +381,6 @@ export function CreateShipyardDrawer({
                 onChange={(v) => updateTeam(t.key, { name: v })}
                 placeholder="e.g. Tech Dep"
               />
-              <TextField
-                label="Description"
-                value={t.description}
-                onChange={(v) => updateTeam(t.key, { description: v })}
-                placeholder="What this team does"
-              />
             </div>
           ))}
           <Note>At least one named team is required to continue.</Note>
@@ -447,7 +438,6 @@ export function CreateTeamDrawer({
   const shipyards = getShipyards();
   const [name, setName] = useState("");
   const [shipyard, setShipyard] = useState(shipyardId);
-  const [description, setDescription] = useState("");
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [invites, setInvites] = useState<string[]>([]);
 
@@ -460,7 +450,7 @@ export function CreateTeamDrawer({
 
   function submit() {
     // The team has to exist before anyone can be invited into it.
-    const teamId = addTeam(activeShipyard, { name, description, memberIds });
+    const teamId = addTeam(activeShipyard, { name, memberIds });
     invites.forEach((email) =>
       addTeamMember(teamId, activeShipyard, {
         name: nameFromEmail(email),
@@ -469,7 +459,6 @@ export function CreateTeamDrawer({
       })
     );
     setName("");
-    setDescription("");
     setMemberIds([]);
     setInvites([]);
     onClose();
@@ -496,12 +485,6 @@ export function CreateTeamDrawer({
         value={shipyard}
         onChange={changeShipyard}
         options={shipyards.map((s) => ({ value: s.id, label: s.name }))}
-      />
-      <TextareaField
-        label="Description"
-        value={description}
-        onChange={setDescription}
-        placeholder="What this team does"
       />
       <div>
         <PeoplePicker
@@ -1175,7 +1158,7 @@ export function AssignTeamsToYachtDrawer({
   const options = teamsInShipyard(shipyardId).map((t) => ({
     value: t.id,
     label: t.name,
-    sublabel: t.description,
+    sublabel: `${t.memberCount} ${t.memberCount === 1 ? "member" : "members"}`,
   }));
   const initial = teamsForYacht(shipyardId, yachtId).map((t) => t.id);
   return (

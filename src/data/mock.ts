@@ -46,7 +46,6 @@ export interface Team {
   id: string;
   shipyardId: string;
   name: string;
-  description: string;
   memberCount: number;
   assignedBoats: number;
 }
@@ -203,9 +202,9 @@ export const sailAdvTeams: SailAdvTeam[] = [
 
 export const teamsByShipyard: Record<string, Team[]> = {
   sanlorenzo: [
-    { id: "tech-dep", shipyardId: "sanlorenzo", name: "Tech Dep", description: "Technical department", memberCount: 21, assignedBoats: 43 },
-    { id: "customer-care", shipyardId: "sanlorenzo", name: "Customer Care", description: "Customer support", memberCount: 0, assignedBoats: 43 },
-    { id: "warranty-dep", shipyardId: "sanlorenzo", name: "Warranty Dep", description: "Warranty & after-sales", memberCount: 0, assignedBoats: 43 },
+    { id: "tech-dep", shipyardId: "sanlorenzo", name: "Tech Dep", memberCount: 21, assignedBoats: 43 },
+    { id: "customer-care", shipyardId: "sanlorenzo", name: "Customer Care", memberCount: 0, assignedBoats: 43 },
+    { id: "warranty-dep", shipyardId: "sanlorenzo", name: "Warranty Dep", memberCount: 0, assignedBoats: 43 },
   ],
 };
 
