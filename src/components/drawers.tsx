@@ -24,17 +24,13 @@ import {
   candidatePeopleForAccount,
   addTeamMember,
   addExistingTeamMember,
-  yachtsInBrand,
   teamsInBrand,
-  yachtsForTeam,
   teamsForYacht,
-  setTeamYachtLinks,
   setYachtTeamLinks,
   updateOwnerTeamMember,
   removeOwnerTeamMember,
 } from "../store";
 import {
-  yachtLabel,
   type YachtRole,
   type OwnerTeamMember,
   type Person,
@@ -1091,42 +1087,6 @@ function AssignLinksDrawer({
       />
       <Note>{note}</Note>
     </Drawer>
-  );
-}
-
-/** Assign which yachts a team can access — opened from the team page. */
-export function AssignYachtsToTeamDrawer({
-  open,
-  onClose,
-  brandId,
-  brandName,
-  teamId,
-  teamName,
-}: {
-  open: boolean;
-  onClose: () => void;
-  brandId: string;
-  brandName: string;
-  teamId: string;
-  teamName: string;
-}) {
-  const options = yachtsInBrand(brandId).map((y) => ({
-    value: y.id,
-    label: yachtLabel(y),
-    sublabel: y.mmsi ? `MMSI ${y.mmsi}` : "MMSI not assigned",
-  }));
-  const initial = yachtsForTeam(brandId, teamId).map((y) => y.id);
-  return (
-    <AssignLinksDrawer
-      open={open}
-      onClose={onClose}
-      title={`Assign yachts · ${teamName}`}
-      label={`Yachts in ${brandName}`}
-      note="A team can access many yachts, and a yacht can be worked by many teams. The same link shows on the yacht page."
-      options={options}
-      initial={initial}
-      onSave={(ids) => setTeamYachtLinks(brandId, teamId, ids)}
-    />
   );
 }
 

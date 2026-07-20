@@ -6,7 +6,6 @@ import { Badge, Button, Card, SearchInput, Avatar } from "../components/ui";
 import { PeopleCount } from "@sqdesign-ai/dgree-ds-react";
 import {
   AddTeamPeopleDrawer,
-  AssignYachtsToTeamDrawer,
 } from "../components/drawers";
 import {
   useStore,
@@ -41,7 +40,6 @@ export default function TeamDetail() {
   const navigate = useNavigate();
 
   const [personOpen, setPersonOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
 
   const brand = brandById(brandId);
   const team = teamById(brandId, teamId);
@@ -152,16 +150,12 @@ export default function TeamDetail() {
 
         {/* Linked yachts */}
         <aside>
-          <div className="mb-3 flex items-center justify-between">
+          {/* Read-only here: a yacht's access is granted from the yacht, so
+              this shows what the team can reach without offering to change it. */}
+          <div className="mb-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-2">
               Linked yachts ({linkedYachts.length})
             </h3>
-            <button
-              onClick={() => setLinkOpen(true)}
-              className="text-xs font-medium text-brand hover:text-brand-hover"
-            >
-              Assign
-            </button>
           </div>
 
           {linkedYachts.map((y) => (
@@ -205,14 +199,6 @@ export default function TeamDetail() {
         teamName={team.name}
       />
 
-      <AssignYachtsToTeamDrawer
-        open={linkOpen}
-        onClose={() => setLinkOpen(false)}
-        brandId={brandId}
-        brandName={brand.name}
-        teamId={teamId}
-        teamName={team.name}
-      />
     </>
   );
 }
