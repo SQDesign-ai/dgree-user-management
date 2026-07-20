@@ -14,43 +14,43 @@ import {
 import { CreateTeamDrawer, CreateYachtDrawer } from "../components/drawers";
 import {
   useStore,
-  shipyardById,
-  groupById,
-  teamsInShipyard,
-  yachtsInShipyard,
+  brandById,
+  accountById,
+  teamsInBrand,
+  yachtsInBrand,
 } from "../store";
 import { yachtLabel, yachtStage, formatDay } from "../data/mock";
 import { FEATURES } from "../config";
 
-export default function ShipyardDetail() {
+export default function BrandDetail() {
   useStore();
-  const { shipyardId = "" } = useParams();
+  const { brandId = "" } = useParams();
   const [tab, setTab] = useState("teams");
   const [teamOpen, setTeamOpen] = useState(false);
   const [yachtOpen, setYachtOpen] = useState(false);
   const navigate = useNavigate();
 
-  const shipyard = shipyardById(shipyardId);
-  if (!shipyard) return <Navigate to="/" replace />;
-  const group = groupById(shipyard.groupId);
-  const teams = teamsInShipyard(shipyardId);
-  const yachts = yachtsInShipyard(shipyardId);
+  const brand = brandById(brandId);
+  if (!brand) return <Navigate to="/" replace />;
+  const account = accountById(brand.accountId);
+  const teams = teamsInBrand(brandId);
+  const yachts = yachtsInBrand(brandId);
 
   return (
     <>
       <PageHeader
         crumbs={[
           { label: "Access management", to: "/" },
-          ...(group
-            ? [{ label: `${group.name} Account`, to: `/groups/${group.id}` }]
+          ...(account
+            ? [{ label: `${account.name} Account`, to: `/accounts/${account.id}` }]
             : []),
-          { label: shipyard.name },
+          { label: brand.name },
         ]}
-        title={shipyard.name}
+        title={brand.name}
         badge={
-          group && (
-            <button onClick={() => navigate(`/groups/${group.id}`)}>
-              <Badge tone="brand">{group.name} Group</Badge>
+          account && (
+            <button onClick={() => navigate(`/accounts/${account.id}`)}>
+              <Badge tone="brand">{account.name} Account</Badge>
             </button>
           )
         }
@@ -89,7 +89,7 @@ export default function ShipyardDetail() {
                 >
                   <button
                     onClick={() =>
-                      navigate(`/shipyards/${shipyardId}/teams/${t.id}`)
+                      navigate(`/brands/${brandId}/teams/${t.id}`)
                     }
                     className="w-full text-left"
                   >
@@ -128,7 +128,7 @@ export default function ShipyardDetail() {
                   <th className="px-5 py-3 font-medium">Yacht</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 font-medium">Last update</th>
-                  <th className="px-5 py-3 font-medium">Shipyard delivery</th>
+                  <th className="px-5 py-3 font-medium">Brand delivery</th>
                   <th className="px-5 py-3 font-medium">Customer delivery</th>
                   <th className="w-10 px-5 py-3" />
                 </tr>
@@ -138,7 +138,7 @@ export default function ShipyardDetail() {
                   <tr
                     key={y.id}
                     onClick={() =>
-                      navigate(`/shipyards/${shipyardId}/yachts/${y.id}`)
+                      navigate(`/brands/${brandId}/yachts/${y.id}`)
                     }
                     className="cursor-pointer border-b border-line-soft/60 transition-colors last:border-0 hover:bg-hover/40"
                   >
@@ -150,7 +150,7 @@ export default function ShipyardDetail() {
                     </td>
                     <td className="px-5 py-4 text-ink-2">{y.lastUpdate}</td>
                     <td className="px-5 py-4 text-ink-2">
-                      {formatDay(y.shipyardDeliveryDate)}
+                      {formatDay(y.brandDeliveryDate)}
                     </td>
                     <td className="px-5 py-4 text-ink-2">
                       {formatDay(y.customerDeliveryDate)}
@@ -172,7 +172,7 @@ export default function ShipyardDetail() {
             {yachts.length > 0 && (
               <div className="flex items-center justify-between border-t border-line px-5 py-3 text-xs text-muted">
                 <span>
-                  Showing {yachts.length} of {shipyard.yachts} yachts
+                  Showing {yachts.length} of {brand.yachts} yachts
                 </span>
                 <div className="flex items-center gap-1">
                   <button className="flex size-6 items-center justify-center rounded text-muted hover:text-ink-2">
@@ -196,12 +196,12 @@ export default function ShipyardDetail() {
 
       <CreateTeamDrawer
         open={teamOpen}
-        shipyardId={shipyardId}
+        brandId={brandId}
         onClose={() => setTeamOpen(false)}
       />
       <CreateYachtDrawer
         open={yachtOpen}
-        shipyardId={shipyardId}
+        brandId={brandId}
         onClose={() => setYachtOpen(false)}
       />
     </>

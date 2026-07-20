@@ -14,19 +14,19 @@ import {
   Row,
 } from "./Drawer";
 import {
-  addGroup,
-  addShipyard,
+  addAccount,
+  addBrand,
   addTeam,
   addYacht,
-  getGroups,
-  getShipyards,
-  ungroupedShipyards,
-  candidatePeopleForShipyard,
-  candidatePeopleForGroup,
+  getAccounts,
+  getBrands,
+  unassignedBrands,
+  candidatePeopleForBrand,
+  candidatePeopleForAccount,
   addTeamMember,
   addExistingTeamMember,
-  yachtsInShipyard,
-  teamsInShipyard,
+  yachtsInBrand,
+  teamsInBrand,
   yachtsForTeam,
   teamsForYacht,
   setTeamYachtLinks,
@@ -42,9 +42,9 @@ import {
 } from "../data/mock";
 
 // -------------------------------------------------------------------------
-// Create group
+// Create account
 // -------------------------------------------------------------------------
-export function CreateGroupDrawer({
+export function CreateAccountDrawer({
   open,
   onClose,
 }: {
@@ -53,20 +53,20 @@ export function CreateGroupDrawer({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [shipyardIds, setShipyardIds] = useState<string[]>([]);
-  const available = ungroupedShipyards();
+  const [brandIds, setBrandIds] = useState<string[]>([]);
+  const available = unassignedBrands();
 
-  function toggleShipyard(id: string) {
-    setShipyardIds((ids) =>
+  function toggleBrand(id: string) {
+    setBrandIds((ids) =>
       ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
     );
   }
 
   function submit() {
-    addGroup(name, { shipyardIds });
+    addAccount(name, { brandIds });
     setName("");
     setDescription("");
-    setShipyardIds([]);
+    setBrandIds([]);
     onClose();
   }
 
@@ -93,27 +93,27 @@ export function CreateGroupDrawer({
         placeholder="Optional"
       />
       <MultiSelectField
-        label="Attach brands (shipyards)"
+        label="Attach brands (brands)"
         options={available.map((s) => ({
           value: s.id,
           label: s.name,
           sublabel: s.yachts > 0 ? `${s.yachts} yachts` : "No yachts yet",
         }))}
-        selected={shipyardIds}
-        onToggle={toggleShipyard}
+        selected={brandIds}
+        onToggle={toggleBrand}
         emptyText="Every brand is already assigned to an account."
       />
       <Note>
         Only brands not yet in an account are listed. You can also add more
-        shipyards afterwards from the account page.
+        brands afterwards from the account page.
       </Note>
     </Drawer>
   );
 }
 
 // -------------------------------------------------------------------------
-// Create shipyard — multi-step wizard (shipyard → teams → people), all in the
-// drawer. Step 1 captures the shipyard; step 2 defines its teams; step 3 adds
+// Create brand — multi-step wizard (brand → teams → people), all in the
+// drawer. Step 1 captures the brand; step 2 defines its teams; step 3 adds
 // existing people to each team.
 // -------------------------------------------------------------------------
 
@@ -130,7 +130,7 @@ interface DraftTeam {
 }
 
 function StepDots({ step }: { step: number }) {
-  const labels = ["Shipyard", "Teams", "People"];
+  const labels = ["Brand", "Teams", "People"];
   return (
     <div className="flex items-center gap-2">
       {labels.map((label, i) => {
@@ -165,31 +165,31 @@ function StepDots({ step }: { step: number }) {
   );
 }
 
-export function CreateShipyardDrawer({
+export function CreateBrandDrawer({
   open,
   onClose,
-  groupId,
+  accountId,
 }: {
   open: boolean;
   onClose: () => void;
-  groupId?: string;
+  accountId?: string;
 }) {
-  const groups = getGroups();
+  const accounts = getAccounts();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
-  const [group, setGroup] = useState(groupId ?? "");
+  const [account, setAccount] = useState(accountId ?? "");
   const [standardDepartments, setStandardDepartments] = useState(true);
   const [teams, setTeams] = useState<DraftTeam[]>([]);
   const keyRef = useRef(0);
   const newKey = () => ++keyRef.current;
 
-  const effectiveGroup = groupId ?? group;
-  const candidates = candidatePeopleForGroup(effectiveGroup);
+  const effectiveAccount = accountId ?? account;
+  const candidates = candidatePeopleForAccount(effectiveAccount);
 
   function reset() {
     setStep(1);
     setName("");
-    setGroup(groupId ?? "");
+    setAccount(accountId ?? "");
     setStandardDepartments(true);
     setTeams([]);
   }
@@ -242,7 +242,7 @@ export function CreateShipyardDrawer({
   // gate for the primary button per step
   const canAdvance =
     step === 1
-      ? !!name.trim() && !!effectiveGroup
+      ? !!name.trim() && !!effectiveAccount
       : step === 2
       ? validTeams.length > 0
       : true;
@@ -256,7 +256,7 @@ export function CreateShipyardDrawer({
     } else if (step === 2) {
       setStep(3);
     } else {
-      const sid = addShipyard(effectiveGroup, name, {
+      const sid = addBrand(effectiveAccount, name, {
         standardDepartments: false,
       });
       validTeams.forEach((t) =>
@@ -283,7 +283,7 @@ export function CreateShipyardDrawer({
         disabled={!canAdvance}
         className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {step < 3 ? "Next" : "Create shipyard"}
+        {step < 3 ? "Next" : "Create brand"}
       </button>
     </footer>
   );
@@ -292,7 +292,7 @@ export function CreateShipyardDrawer({
     <Drawer
       open={open}
       onClose={close}
-      title="Create shipyard"
+      title="Create brand"
       onSubmit={primary}
       footer={footer}
     >
@@ -303,24 +303,24 @@ export function CreateShipyardDrawer({
       {step === 1 && (
         <>
           <TextField
-            label="Shipyard name"
+            label="Brand name"
             value={name}
             onChange={setName}
             placeholder="e.g. Sanlorenzo"
             autoFocus
           />
-          {groupId ? (
+          {accountId ? (
             <AssignField
               label="Account"
-              value={groups.find((g) => g.id === groupId)?.name ?? "—"}
+              value={accounts.find((g) => g.id === accountId)?.name ?? "—"}
             />
           ) : (
             <SelectField
               label="Account"
-              value={group}
-              onChange={setGroup}
+              value={account}
+              onChange={setAccount}
               placeholder="Select account"
-              options={groups.map((g) => ({ value: g.id, label: g.name }))}
+              options={accounts.map((g) => ({ value: g.id, label: g.name }))}
             />
           )}
           <CheckboxField
@@ -409,12 +409,12 @@ export function CreateShipyardDrawer({
                 }))}
                 selected={t.memberIds}
                 onToggle={(id) => toggleMember(t.key, id)}
-                emptyText="No people available for this group yet."
+                emptyText="No people available for this account yet."
               />
             </div>
           ))}
           <Note>
-            Pick existing people from this group (or any SailADV member). You
+            Pick existing people from this account (or any SailADV member). You
             can invite brand-new people from each team page later.
           </Note>
         </>
@@ -429,30 +429,30 @@ export function CreateShipyardDrawer({
 export function CreateTeamDrawer({
   open,
   onClose,
-  shipyardId,
+  brandId,
 }: {
   open: boolean;
   onClose: () => void;
-  shipyardId: string;
+  brandId: string;
 }) {
-  const shipyards = getShipyards();
+  const brands = getBrands();
   const [name, setName] = useState("");
-  const [shipyard, setShipyard] = useState(shipyardId);
+  const [brand, setBrand] = useState(brandId);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [invites, setInvites] = useState<string[]>([]);
 
-  const activeShipyard = shipyard || shipyardId;
+  const activeBrand = brand || brandId;
 
-  function changeShipyard(id: string) {
-    setShipyard(id);
-    setMemberIds([]); // candidates differ per group — reset selection
+  function changeBrand(id: string) {
+    setBrand(id);
+    setMemberIds([]); // candidates differ per account — reset selection
   }
 
   function submit() {
     // The team has to exist before anyone can be invited into it.
-    const teamId = addTeam(activeShipyard, { name, memberIds });
+    const teamId = addTeam(activeBrand, { name, memberIds });
     invites.forEach((email) =>
-      addTeamMember(teamId, activeShipyard, {
+      addTeamMember(teamId, activeBrand, {
         name: nameFromEmail(email),
         handle: email,
         status: "invited",
@@ -481,14 +481,14 @@ export function CreateTeamDrawer({
         autoFocus
       />
       <SelectField
-        label="Shipyard"
-        value={shipyard}
-        onChange={changeShipyard}
-        options={shipyards.map((s) => ({ value: s.id, label: s.name }))}
+        label="Brand"
+        value={brand}
+        onChange={changeBrand}
+        options={brands.map((s) => ({ value: s.id, label: s.name }))}
       />
       <div>
         <PeoplePicker
-          candidates={candidatePeopleForShipyard(activeShipyard)}
+          candidates={candidatePeopleForBrand(activeBrand)}
           selected={memberIds}
           onToggle={(id) =>
             setMemberIds((ids) =>
@@ -500,11 +500,11 @@ export function CreateTeamDrawer({
           onRemoveInvite={(email) =>
             setInvites((v) => v.filter((x) => x !== email))
           }
-          emptyText="No people available for this shipyard's group yet."
+          emptyText="No people available for this brand's account yet."
         />
       </div>
       <Note>
-        Pick existing people from this group (or any SailADV member), and invite
+        Pick existing people from this account (or any SailADV member), and invite
         anyone who isn&apos;t there yet. The same person can belong to several
         teams.
       </Note>
@@ -518,38 +518,38 @@ export function CreateTeamDrawer({
 export function CreateYachtDrawer({
   open,
   onClose,
-  shipyardId,
+  brandId,
 }: {
   open: boolean;
   onClose: () => void;
-  shipyardId: string;
+  brandId: string;
 }) {
-  const shipyards = getShipyards();
+  const brands = getBrands();
   const [name, setName] = useState("");
   const [mmsi, setMmsi] = useState("");
   const [assetUuid, setAssetUuid] = useState("");
-  const [shipyard, setShipyard] = useState(shipyardId);
-  const [shipyardDelivery, setShipyardDelivery] = useState("");
+  const [brand, setBrand] = useState(brandId);
+  const [brandDelivery, setBrandDelivery] = useState("");
   const [ownerDelivery, setOwnerDelivery] = useState("");
 
   function submit() {
     const stage = ownerDelivery
       ? "delivered"
-      : shipyardDelivery
+      : brandDelivery
       ? "pre_delivery"
       : "production";
-    addYacht(shipyard || shipyardId, {
+    addYacht(brand || brandId, {
       code: name,
       mmsi,
       assetUuid,
       stage,
-      shipyardDeliveryDate: shipyardDelivery || undefined,
+      brandDeliveryDate: brandDelivery || undefined,
       customerDeliveryDate: ownerDelivery || undefined,
     });
     setName("");
     setMmsi("");
     setAssetUuid("");
-    setShipyardDelivery("");
+    setBrandDelivery("");
     setOwnerDelivery("");
     onClose();
   }
@@ -577,16 +577,16 @@ export function CreateYachtDrawer({
         placeholder="Optional · e.g. 256962000"
       />
       <SelectField
-        label="Shipyard"
-        value={shipyard}
-        onChange={setShipyard}
-        options={shipyards.map((s) => ({ value: s.id, label: s.name }))}
+        label="Brand"
+        value={brand}
+        onChange={setBrand}
+        options={brands.map((s) => ({ value: s.id, label: s.name }))}
       />
       <Row>
         <DateField
-          label="Shipyard delivery"
-          value={shipyardDelivery}
-          onChange={setShipyardDelivery}
+          label="Brand delivery"
+          value={brandDelivery}
+          onChange={setBrandDelivery}
         />
         <DateField
           label="Owner delivery"
@@ -697,11 +697,11 @@ export function AddYachtDrawer({
   open: boolean;
   onClose: () => void;
 }) {
-  const groups = getGroups();
-  const shipyards = getShipyards();
+  const accounts = getAccounts();
+  const brands = getBrands();
   const [uuid, setUuid] = useState("");
   const [account, setAccount] = useState("");
-  const [shipyard, setShipyard] = useState("");
+  const [brand, setBrand] = useState("");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [mmsi, setMmsi] = useState("");
@@ -710,18 +710,18 @@ export function AddYachtDrawer({
     if (!open) return;
     setUuid("");
     setAccount("");
-    setShipyard("");
+    setBrand("");
     setCode("");
     setName("");
     setMmsi("");
   }, [open]);
 
-  const shipyardOptions = shipyards.filter((s) => s.groupId === account);
-  const canSubmit = !!shipyard && !!code.trim();
+  const brandOptions = brands.filter((s) => s.accountId === account);
+  const canSubmit = !!brand && !!code.trim();
 
   function submit() {
-    if (!shipyard) return;
-    addYacht(shipyard, { code, name, mmsi, assetUuid: uuid, stage: "production" });
+    if (!brand) return;
+    addYacht(brand, { code, name, mmsi, assetUuid: uuid, stage: "production" });
     onClose();
   }
 
@@ -747,17 +747,17 @@ export function AddYachtDrawer({
           value={account}
           onChange={(v) => {
             setAccount(v);
-            setShipyard("");
+            setBrand("");
           }}
           placeholder="Select account"
-          options={groups.map((g) => ({ value: g.id, label: g.name }))}
+          options={accounts.map((g) => ({ value: g.id, label: g.name }))}
         />
         <SelectField
-          label="Shipyard"
-          value={shipyard}
-          onChange={setShipyard}
-          placeholder={account ? "Select shipyard" : "Pick an account first"}
-          options={shipyardOptions.map((s) => ({ value: s.id, label: s.name }))}
+          label="Brand"
+          value={brand}
+          onChange={setBrand}
+          placeholder={account ? "Select brand" : "Pick an account first"}
+          options={brandOptions.map((s) => ({ value: s.id, label: s.name }))}
         />
       </Row>
       <Row>
@@ -795,13 +795,13 @@ export function AddYachtDrawer({
 export function AddTeamPeopleDrawer({
   open,
   onClose,
-  shipyardId,
+  brandId,
   teamId,
   teamName,
 }: {
   open: boolean;
   onClose: () => void;
-  shipyardId: string;
+  brandId: string;
   teamId: string;
   teamName: string;
 }) {
@@ -827,9 +827,9 @@ export function AddTeamPeopleDrawer({
       : "Add people";
 
   function submit() {
-    selected.forEach((id) => addExistingTeamMember(teamId, shipyardId, id));
+    selected.forEach((id) => addExistingTeamMember(teamId, brandId, id));
     invites.forEach((email) =>
-      addTeamMember(teamId, shipyardId, {
+      addTeamMember(teamId, brandId, {
         name: nameFromEmail(email),
         handle: email,
         status: "invited",
@@ -848,7 +848,7 @@ export function AddTeamPeopleDrawer({
       onSubmit={submit}
     >
       <PeoplePicker
-        candidates={candidatePeopleForShipyard(shipyardId, teamId)}
+        candidates={candidatePeopleForBrand(brandId, teamId)}
         selected={selected}
         onToggle={(id) =>
           setSelected((s) =>
@@ -860,7 +860,7 @@ export function AddTeamPeopleDrawer({
         onRemoveInvite={(email) =>
           setInvites((v) => v.filter((x) => x !== email))
         }
-        emptyText="Everyone in this group is already on the team."
+        emptyText="Everyone in this account is already on the team."
       />
     </Drawer>
   );
@@ -1096,7 +1096,7 @@ function AssignLinksDrawer({
         options={options}
         selected={sel}
         onToggle={toggle}
-        emptyText="Nothing available in this shipyard yet."
+        emptyText="Nothing available in this brand yet."
       />
       <Note>{note}</Note>
     </Drawer>
@@ -1107,34 +1107,34 @@ function AssignLinksDrawer({
 export function AssignYachtsToTeamDrawer({
   open,
   onClose,
-  shipyardId,
-  shipyardName,
+  brandId,
+  brandName,
   teamId,
   teamName,
 }: {
   open: boolean;
   onClose: () => void;
-  shipyardId: string;
-  shipyardName: string;
+  brandId: string;
+  brandName: string;
   teamId: string;
   teamName: string;
 }) {
-  const options = yachtsInShipyard(shipyardId).map((y) => ({
+  const options = yachtsInBrand(brandId).map((y) => ({
     value: y.id,
     label: yachtLabel(y),
     sublabel: y.mmsi ? `MMSI ${y.mmsi}` : "MMSI not assigned",
   }));
-  const initial = yachtsForTeam(shipyardId, teamId).map((y) => y.id);
+  const initial = yachtsForTeam(brandId, teamId).map((y) => y.id);
   return (
     <AssignLinksDrawer
       open={open}
       onClose={onClose}
       title={`Assign yachts · ${teamName}`}
-      label={`Yachts in ${shipyardName}`}
+      label={`Yachts in ${brandName}`}
       note="A team can access many yachts, and a yacht can be worked by many teams. The same link shows on the yacht page."
       options={options}
       initial={initial}
-      onSave={(ids) => setTeamYachtLinks(shipyardId, teamId, ids)}
+      onSave={(ids) => setTeamYachtLinks(brandId, teamId, ids)}
     />
   );
 }
@@ -1143,34 +1143,34 @@ export function AssignYachtsToTeamDrawer({
 export function AssignTeamsToYachtDrawer({
   open,
   onClose,
-  shipyardId,
-  shipyardName,
+  brandId,
+  brandName,
   yachtId,
   yachtName,
 }: {
   open: boolean;
   onClose: () => void;
-  shipyardId: string;
-  shipyardName: string;
+  brandId: string;
+  brandName: string;
   yachtId: string;
   yachtName: string;
 }) {
-  const options = teamsInShipyard(shipyardId).map((t) => ({
+  const options = teamsInBrand(brandId).map((t) => ({
     value: t.id,
     label: t.name,
     sublabel: `${t.memberCount} ${t.memberCount === 1 ? "member" : "members"}`,
   }));
-  const initial = teamsForYacht(shipyardId, yachtId).map((t) => t.id);
+  const initial = teamsForYacht(brandId, yachtId).map((t) => t.id);
   return (
     <AssignLinksDrawer
       open={open}
       onClose={onClose}
       title={`Assign teams · ${yachtName}`}
-      label={`Teams in ${shipyardName}`}
+      label={`Teams in ${brandName}`}
       note="A yacht can be worked by many teams, and a team can access many yachts. The same link shows on the team page."
       options={options}
       initial={initial}
-      onSave={(ids) => setYachtTeamLinks(shipyardId, yachtId, ids)}
+      onSave={(ids) => setYachtTeamLinks(brandId, yachtId, ids)}
     />
   );
 }

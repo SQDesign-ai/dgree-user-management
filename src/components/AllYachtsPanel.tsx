@@ -5,9 +5,9 @@ import { Card, StageBadge, Button } from "./ui";
 import { AddYachtDrawer } from "./drawers";
 import {
   useStore,
-  getShipyards,
-  getGroups,
-  yachtsInShipyard,
+  getBrands,
+  getAccounts,
+  yachtsInBrand,
 } from "../store";
 import {
   yachtLabel,
@@ -21,25 +21,25 @@ import {
 
 interface Row {
   yacht: Yacht;
-  shipyardId: string;
-  shipyardName: string;
-  groupId: string;
-  groupName: string;
+  brandId: string;
+  brandName: string;
+  accountId: string;
+  accountName: string;
   stage: YachtStage;
 }
 
-/** Flat list of every yacht across all shipyards, with account + brand context. */
+/** Flat list of every yacht across all brands, with account + brand context. */
 function useAllYachts(): Row[] {
-  const shipyards = getShipyards();
-  const groups = getGroups();
-  return shipyards.flatMap((s) => {
-    const group = groups.find((g) => g.id === s.groupId);
-    return yachtsInShipyard(s.id).map((y) => ({
+  const brands = getBrands();
+  const accounts = getAccounts();
+  return brands.flatMap((s) => {
+    const account = accounts.find((g) => g.id === s.accountId);
+    return yachtsInBrand(s.id).map((y) => ({
       yacht: y,
-      shipyardId: s.id,
-      shipyardName: s.name,
-      groupId: s.groupId,
-      groupName: group?.name ?? "—",
+      brandId: s.id,
+      brandName: s.name,
+      accountId: s.accountId,
+      accountName: account?.name ?? "—",
       stage: yachtStage(y),
     }));
   });
@@ -49,7 +49,7 @@ export function AllYachtsPanel() {
   useStore();
   const navigate = useNavigate();
   const rows = useAllYachts();
-  const groups = getGroups();
+  const accounts = getAccounts();
 
   const [account, setAccount] = useState("all");
   const [status, setStatus] = useState<"all" | YachtStage>("all");
@@ -58,12 +58,12 @@ export function AllYachtsPanel() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((r) => {
-      if (account !== "all" && r.groupId !== account) return false;
+      if (account !== "all" && r.accountId !== account) return false;
       if (status !== "all" && r.stage !== status) return false;
       if (q) {
         const hay = `${r.yacht.code} ${r.yacht.name ?? ""} ${
           r.yacht.mmsi ?? ""
-        } ${r.yacht.assetUuid ?? ""} ${r.shipyardName}`.toLowerCase();
+        } ${r.yacht.assetUuid ?? ""} ${r.brandName}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -83,7 +83,7 @@ export function AllYachtsPanel() {
           className={`${control} ${account === "all" ? "text-muted" : ""}`}
         >
           <option value="all">All accounts</option>
-          {groups.map((g) => (
+          {accounts.map((g) => (
             <option key={g.id} value={g.id} className="text-ink">
               {g.name}
             </option>
@@ -124,7 +124,7 @@ export function AllYachtsPanel() {
                 <th className="px-5 py-3 font-medium">Account</th>
                 <th className="px-5 py-3 font-medium">Brand</th>
                 <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Shipyard delivery</th>
+                <th className="px-5 py-3 font-medium">Brand delivery</th>
                 <th className="px-5 py-3 font-medium">Customer delivery</th>
                 <th className="w-10 px-5 py-3" />
               </tr>
@@ -132,22 +132,22 @@ export function AllYachtsPanel() {
             <tbody>
               {filtered.map((r) => (
                 <tr
-                  key={`${r.shipyardId}-${r.yacht.id}`}
+                  key={`${r.brandId}-${r.yacht.id}`}
                   onClick={() =>
-                    navigate(`/shipyards/${r.shipyardId}/yachts/${r.yacht.id}`)
+                    navigate(`/brands/${r.brandId}/yachts/${r.yacht.id}`)
                   }
                   className="cursor-pointer border-b border-line-soft/60 transition-colors last:border-0 hover:bg-hover/40"
                 >
                   <td className="px-5 py-4 font-semibold text-white">
                     {yachtLabel(r.yacht)}
                   </td>
-                  <td className="px-5 py-4 text-ink-2">{r.groupName}</td>
-                  <td className="px-5 py-4 text-ink-2">{r.shipyardName}</td>
+                  <td className="px-5 py-4 text-ink-2">{r.accountName}</td>
+                  <td className="px-5 py-4 text-ink-2">{r.brandName}</td>
                   <td className="px-5 py-4">
                     <StageBadge stage={r.stage} />
                   </td>
                   <td className="px-5 py-4 text-ink-2">
-                    {formatDay(r.yacht.shipyardDeliveryDate)}
+                    {formatDay(r.yacht.brandDeliveryDate)}
                   </td>
                   <td className="px-5 py-4 text-ink-2">
                     {formatDay(r.yacht.customerDeliveryDate)}

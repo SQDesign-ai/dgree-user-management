@@ -4,7 +4,7 @@
 // -------------------------------------------------------------------------
 
 export type YachtStatus = "delivered" | "production";
-// Delivery lifecycle: production → pre_delivery (to shipyard) → delivered (to
+// Delivery lifecycle: production → pre_delivery (to brand) → delivered (to
 // customer). Drives which teams can access the vessel.
 export type YachtStage = "production" | "pre_delivery" | "delivered";
 export type MemberStatus = "active" | "invited" | "suspended";
@@ -12,28 +12,28 @@ export type MemberStatus = "active" | "invited" | "suspended";
 export type YachtRole = "owner" | "captain" | "crew" | "guest";
 export type AccessStatus = "active" | "expired" | "pending";
 
-// "regular" people belong to a single group (home groupId) and can be linked
-// into any team/shipyard *within that group*. "sail-adv" people belong to the
-// global SailADV org and can be linked across multiple groups & shipyards.
+// "regular" people belong to a single account (home accountId) and can be linked
+// into any team/brand *within that account*. "sail-adv" people belong to the
+// global SailADV org and can be linked across multiple accounts & brands.
 export type PersonKind = "regular" | "sail-adv";
 
-export interface Group {
+export interface Account {
   id: string;
   name: string;
 }
 
-export interface Shipyard {
+export interface Brand {
   id: string;
   name: string;
-  groupId: string;
+  accountId: string;
   users: number;
   yachts: number;
   teams: number;
 }
 
-// A person granted access at the group level, reaching one or more brands
-// (shipyards) and every yacht under them.
-export interface GroupPerson {
+// A person granted access at the account level, reaching one or more brands
+// (brands) and every yacht under them.
+export interface AccountPerson {
   id: string;
   name: string;
   handle: string;
@@ -44,7 +44,7 @@ export interface GroupPerson {
 
 export interface Team {
   id: string;
-  shipyardId: string;
+  brandId: string;
   name: string;
   memberCount: number;
   assignedBoats: number;
@@ -59,26 +59,26 @@ export interface Member {
 }
 
 // A person in the shared directory. Team membership references these by id, so
-// one person can be linked into many teams (and, for regulars, many shipyards
-// within their home group; for sail-adv, across groups).
+// one person can be linked into many teams (and, for regulars, many brands
+// within their home account; for sail-adv, across accounts).
 export interface Person {
   id: string;
   name: string;
   handle: string;
   status: MemberStatus;
   kind: PersonKind;
-  groupId?: string; // home group for regulars; undefined for sail-adv
+  accountId?: string; // home account for regulars; undefined for sail-adv
 }
 
 export interface Yacht {
   id: string;
-  shipyardId: string;
+  brandId: string;
   code: string;
   name?: string;
   status: YachtStatus;
   stage?: YachtStage; // delivery lifecycle; falls back to status when absent
   productionDate?: string; // ISO yyyy-mm-dd — entered production
-  shipyardDeliveryDate?: string; // ISO yyyy-mm-dd — delivered to shipyard
+  brandDeliveryDate?: string; // ISO yyyy-mm-dd — delivered to brand
   customerDeliveryDate?: string; // ISO yyyy-mm-dd — delivered to customer
   mmsi: string | null;
   imo?: string; // IMO number — assigned to larger/commercial hulls, so optional
@@ -87,9 +87,9 @@ export interface Yacht {
 }
 
 // A many-to-many access link between a team and a yacht, always within the
-// same shipyard. Editable from both the team page and the yacht page.
+// same brand. Editable from both the team page and the yacht page.
 export interface TeamYachtLink {
-  shipyardId: string;
+  brandId: string;
   teamId: string;
   yachtId: string;
 }
@@ -133,32 +133,32 @@ export interface SailAdvTeam {
   scope: string;
 }
 
-export const groups: Group[] = [
+export const accounts: Account[] = [
   { id: "sanlorenzo", name: "Sanlorenzo" },
   { id: "azimut-benetti", name: "Azimut-Benetti" },
   { id: "cantiere-del-pardo", name: "Cantiere del Pardo" },
   { id: "triodeniz", name: "Triodeniz" },
 ];
 
-export const shipyards: Shipyard[] = [
-  { id: "sanlorenzo", name: "Sanlorenzo", groupId: "sanlorenzo", users: 22, yachts: 43, teams: 3 },
-  { id: "benetti-yachts", name: "Benetti Yachts", groupId: "azimut-benetti", users: 8, yachts: 17, teams: 3 },
-  { id: "grand-soleil-yachts", name: "Grand Soleil Yachts", groupId: "cantiere-del-pardo", users: 0, yachts: 1, teams: 3 },
-  { id: "pardo-production-site", name: "Pardo Production Site", groupId: "cantiere-del-pardo", users: 0, yachts: 1, teams: 3 },
-  { id: "bluegame", name: "Bluegame", groupId: "sanlorenzo", users: 0, yachts: 1, teams: 3 },
-  { id: "triodeniz", name: "Triodeniz", groupId: "triodeniz", users: 3, yachts: 0, teams: 3 },
-  { id: "van-dutch", name: "Van Dutch", groupId: "cantiere-del-pardo", users: 0, yachts: 0, teams: 3 },
-  { id: "pardo-yachts", name: "Pardo Yachts", groupId: "cantiere-del-pardo", users: 0, yachts: 0, teams: 3 },
-  { id: "nautor", name: "Nautor", groupId: "sanlorenzo", users: 0, yachts: 0, teams: 3 },
-  // Ungrouped brands — not yet assigned to any group. These are the pool the
-  // "Create group" flow lets you attach (groupId === "").
-  { id: "perini-navi", name: "Perini Navi", groupId: "", users: 0, yachts: 0, teams: 0 },
-  { id: "wally", name: "Wally", groupId: "", users: 0, yachts: 0, teams: 0 },
-  { id: "mangusta", name: "Mangusta", groupId: "", users: 0, yachts: 0, teams: 0 },
+export const brands: Brand[] = [
+  { id: "sanlorenzo", name: "Sanlorenzo", accountId: "sanlorenzo", users: 22, yachts: 43, teams: 3 },
+  { id: "benetti-yachts", name: "Benetti Yachts", accountId: "azimut-benetti", users: 8, yachts: 17, teams: 3 },
+  { id: "grand-soleil-yachts", name: "Grand Soleil Yachts", accountId: "cantiere-del-pardo", users: 0, yachts: 1, teams: 3 },
+  { id: "pardo-production-site", name: "Pardo Production Site", accountId: "cantiere-del-pardo", users: 0, yachts: 1, teams: 3 },
+  { id: "bluegame", name: "Bluegame", accountId: "sanlorenzo", users: 0, yachts: 1, teams: 3 },
+  { id: "triodeniz", name: "Triodeniz", accountId: "triodeniz", users: 3, yachts: 0, teams: 3 },
+  { id: "van-dutch", name: "Van Dutch", accountId: "cantiere-del-pardo", users: 0, yachts: 0, teams: 3 },
+  { id: "pardo-yachts", name: "Pardo Yachts", accountId: "cantiere-del-pardo", users: 0, yachts: 0, teams: 3 },
+  { id: "nautor", name: "Nautor", accountId: "sanlorenzo", users: 0, yachts: 0, teams: 3 },
+  // Unassigned brands — not yet assigned to any account. These are the pool the
+  // "Create account" flow lets you attach (accountId === "").
+  { id: "perini-navi", name: "Perini Navi", accountId: "", users: 0, yachts: 0, teams: 0 },
+  { id: "wally", name: "Wally", accountId: "", users: 0, yachts: 0, teams: 0 },
+  { id: "mangusta", name: "Mangusta", accountId: "", users: 0, yachts: 0, teams: 0 },
 ];
 
-// Group-level people (keyed by group id).
-export const peopleByGroup: Record<string, GroupPerson[]> = {
+// Account-level people (keyed by account id).
+export const peopleByAccount: Record<string, AccountPerson[]> = {
   sanlorenzo: [
     { id: "l-ferrari", name: "Luca Ferrari", handle: "@l_ferrari", brands: "All 3 brands", allBrands: true, status: "active" },
     { id: "m-bruno", name: "Marta Bruno", handle: "@m_bruno", brands: "All 3 brands", allBrands: true, status: "active" },
@@ -167,26 +167,26 @@ export const peopleByGroup: Record<string, GroupPerson[]> = {
 };
 
 // Shared people directory. Seeds the pool that "Create team" picks from.
-// Regulars are scoped to a home group; sail-adv people are global and can be
-// added to teams in any group/shipyard.
+// Regulars are scoped to a home account; sail-adv people are global and can be
+// added to teams in any account/brand.
 export const directoryPeople: Person[] = [
-  // Sanlorenzo group-level people (also shown on the group People tab).
-  { id: "l-ferrari", name: "Luca Ferrari", handle: "@l_ferrari", status: "active", kind: "regular", groupId: "sanlorenzo" },
-  { id: "m-bruno", name: "Marta Bruno", handle: "@m_bruno", status: "active", kind: "regular", groupId: "sanlorenzo" },
-  { id: "d-costa", name: "Davide Costa", handle: "@d_costa", status: "invited", kind: "regular", groupId: "sanlorenzo" },
+  // Sanlorenzo account-level people (also shown on the account People tab).
+  { id: "l-ferrari", name: "Luca Ferrari", handle: "@l_ferrari", status: "active", kind: "regular", accountId: "sanlorenzo" },
+  { id: "m-bruno", name: "Marta Bruno", handle: "@m_bruno", status: "active", kind: "regular", accountId: "sanlorenzo" },
+  { id: "d-costa", name: "Davide Costa", handle: "@d_costa", status: "invited", kind: "regular", accountId: "sanlorenzo" },
   // Sanlorenzo Tech Dep members (also seeded into the tech-dep team).
-  { id: "a-franzi", name: "Alessandro Franzi", handle: "@a_franzi", status: "active", kind: "regular", groupId: "sanlorenzo" },
-  { id: "a-gatto", name: "Alberto Gatto", handle: "@a_gatto", status: "active", kind: "regular", groupId: "sanlorenzo" },
-  { id: "a-guido", name: "Andrea Guido", handle: "@a_guido", status: "active", kind: "regular", groupId: "sanlorenzo" },
-  { id: "a-mdshah", name: "Alam MDShah", handle: "@a_mdshah", status: "active", kind: "regular", groupId: "sanlorenzo" },
-  { id: "a-sansica", name: "Antonio Sansica", handle: "@a_sansica", status: "active", kind: "regular", groupId: "sanlorenzo" },
-  { id: "a-venturi", name: "Alberto Venturi", handle: "@a.venturi", status: "active", kind: "regular", groupId: "sanlorenzo" },
-  { id: "a-castagno", name: "Andrea Castagno", handle: "@a_castagno", status: "active", kind: "regular", groupId: "sanlorenzo" },
-  { id: "b-gerceker", name: "berkay gerceker", handle: "@b_gerceker", status: "invited", kind: "regular", groupId: "sanlorenzo" },
-  // A couple of regulars in other groups so their pickers aren't sail-adv-only.
-  { id: "f-romano", name: "Francesca Romano", handle: "@f_romano", status: "active", kind: "regular", groupId: "azimut-benetti" },
-  { id: "g-esposito", name: "Giorgio Esposito", handle: "@g_esposito", status: "active", kind: "regular", groupId: "cantiere-del-pardo" },
-  // SailADV org — global people who can span groups & shipyards.
+  { id: "a-franzi", name: "Alessandro Franzi", handle: "@a_franzi", status: "active", kind: "regular", accountId: "sanlorenzo" },
+  { id: "a-gatto", name: "Alberto Gatto", handle: "@a_gatto", status: "active", kind: "regular", accountId: "sanlorenzo" },
+  { id: "a-guido", name: "Andrea Guido", handle: "@a_guido", status: "active", kind: "regular", accountId: "sanlorenzo" },
+  { id: "a-mdshah", name: "Alam MDShah", handle: "@a_mdshah", status: "active", kind: "regular", accountId: "sanlorenzo" },
+  { id: "a-sansica", name: "Antonio Sansica", handle: "@a_sansica", status: "active", kind: "regular", accountId: "sanlorenzo" },
+  { id: "a-venturi", name: "Alberto Venturi", handle: "@a.venturi", status: "active", kind: "regular", accountId: "sanlorenzo" },
+  { id: "a-castagno", name: "Andrea Castagno", handle: "@a_castagno", status: "active", kind: "regular", accountId: "sanlorenzo" },
+  { id: "b-gerceker", name: "berkay gerceker", handle: "@b_gerceker", status: "invited", kind: "regular", accountId: "sanlorenzo" },
+  // A couple of regulars in other accounts so their pickers aren't sail-adv-only.
+  { id: "f-romano", name: "Francesca Romano", handle: "@f_romano", status: "active", kind: "regular", accountId: "azimut-benetti" },
+  { id: "g-esposito", name: "Giorgio Esposito", handle: "@g_esposito", status: "active", kind: "regular", accountId: "cantiere-del-pardo" },
+  // SailADV org — global people who can span accounts & brands.
   { id: "sa-ricci", name: "Elena Ricci", handle: "@e_ricci", status: "active", kind: "sail-adv" },
   { id: "sa-greco", name: "Matteo Greco", handle: "@m_greco", status: "active", kind: "sail-adv" },
   { id: "sa-rizzo", name: "Chiara Rizzo", handle: "@c_rizzo", status: "active", kind: "sail-adv" },
@@ -195,16 +195,16 @@ export const directoryPeople: Person[] = [
 ];
 
 export const sailAdvTeams: SailAdvTeam[] = [
-  { id: "sail-adv-ops", name: "Fleet Operations", description: "Cross-shipyard operations desk", memberCount: 12, scope: "All groups" },
-  { id: "sail-adv-support", name: "Owner Support", description: "Concierge & owner relations", memberCount: 7, scope: "All groups" },
-  { id: "sail-adv-data", name: "Data & Analytics", description: "Telemetry and reporting", memberCount: 4, scope: "All groups" },
+  { id: "sail-adv-ops", name: "Fleet Operations", description: "Cross-brand operations desk", memberCount: 12, scope: "All accounts" },
+  { id: "sail-adv-support", name: "Owner Support", description: "Concierge & owner relations", memberCount: 7, scope: "All accounts" },
+  { id: "sail-adv-data", name: "Data & Analytics", description: "Telemetry and reporting", memberCount: 4, scope: "All accounts" },
 ];
 
-export const teamsByShipyard: Record<string, Team[]> = {
+export const teamsByBrand: Record<string, Team[]> = {
   sanlorenzo: [
-    { id: "tech-dep", shipyardId: "sanlorenzo", name: "Tech Dep", memberCount: 21, assignedBoats: 43 },
-    { id: "customer-care", shipyardId: "sanlorenzo", name: "Customer Care", memberCount: 0, assignedBoats: 43 },
-    { id: "warranty-dep", shipyardId: "sanlorenzo", name: "Warranty Dep", memberCount: 0, assignedBoats: 43 },
+    { id: "tech-dep", brandId: "sanlorenzo", name: "Tech Dep", memberCount: 21, assignedBoats: 43 },
+    { id: "customer-care", brandId: "sanlorenzo", name: "Customer Care", memberCount: 0, assignedBoats: 43 },
+    { id: "warranty-dep", brandId: "sanlorenzo", name: "Warranty Dep", memberCount: 0, assignedBoats: 43 },
   ],
 };
 
@@ -221,26 +221,26 @@ export const membersByTeam: Record<string, Member[]> = {
   ],
 };
 
-export const yachtsByShipyard: Record<string, Yacht[]> = {
+export const yachtsByBrand: Record<string, Yacht[]> = {
   sanlorenzo: [
-    { id: "sd118-129", shipyardId: "sanlorenzo", code: "SD118-129", name: "UNIQUE S", status: "delivered", stage: "delivered", productionDate: "2024-04-15", shipyardDeliveryDate: "2025-09-20T09:14:32Z", customerDeliveryDate: "2026-06-27T15:42:08Z", mmsi: "256834000", imo: "9874102", lastUpdate: "27 Jun 2026" },
-    { id: "sl50-171", shipyardId: "sanlorenzo", code: "SL50-171", name: "CONTIGO", status: "delivered", stage: "delivered", productionDate: "2024-09-02", shipyardDeliveryDate: "2025-11-10T11:05:47Z", customerDeliveryDate: "2026-03-14T14:20:11Z", mmsi: "256962000", imo: "9876543", lastUpdate: "03 Jun 2026", assetUuid: "a3f9c1e0-7b42-4d18-9f6a-2c5e8b0d4471" },
-    { id: "sp110-05", shipyardId: "sanlorenzo", code: "SP110-05", name: "SuperV", status: "delivered", stage: "delivered", productionDate: "2024-01-10", shipyardDeliveryDate: "2025-07-04T08:30:15Z", customerDeliveryDate: "2026-05-20T16:12:45Z", mmsi: "533133096", lastUpdate: "20 May 2026" },
-    { id: "sd90-119", shipyardId: "sanlorenzo", code: "SD90-119", name: "MY SAL", status: "delivered", stage: "pre_delivery", productionDate: "2025-06-18", shipyardDeliveryDate: "2026-05-02T10:15:27Z", mmsi: "256498000", imo: "9812477", lastUpdate: "20 May 2026" },
-    { id: "sx88-134", shipyardId: "sanlorenzo", code: "SX88-134", status: "delivered", stage: "delivered", productionDate: "2024-03-05", shipyardDeliveryDate: "2025-10-12T10:45:22Z", customerDeliveryDate: "2026-05-18T13:05:09Z", mmsi: "256004052", lastUpdate: "20 May 2026" },
-    { id: "sl200-72", shipyardId: "sanlorenzo", code: "SL200-72", status: "delivered", stage: "delivered", productionDate: "2023-11-22", shipyardDeliveryDate: "2025-06-30T09:00:03Z", customerDeliveryDate: "2026-05-05T17:33:50Z", mmsi: "538072431", lastUpdate: "20 May 2026" },
-    { id: "sl90a-877", shipyardId: "sanlorenzo", code: "SL90A-877", status: "production", stage: "production", productionDate: "2026-02-14", mmsi: null, lastUpdate: "28 May 2026" },
-    { id: "sp92-16", shipyardId: "sanlorenzo", code: "SP92-16", status: "production", mmsi: null, lastUpdate: "28 May 2026" },
-    { id: "sx88-164", shipyardId: "sanlorenzo", code: "SX88-164", status: "production", mmsi: null, lastUpdate: "20 May 2026" },
-    { id: "sl96a-885", shipyardId: "sanlorenzo", code: "SL96A-885", status: "production", mmsi: null, lastUpdate: "20 May 2026" },
+    { id: "sd118-129", brandId: "sanlorenzo", code: "SD118-129", name: "UNIQUE S", status: "delivered", stage: "delivered", productionDate: "2024-04-15", brandDeliveryDate: "2025-09-20T09:14:32Z", customerDeliveryDate: "2026-06-27T15:42:08Z", mmsi: "256834000", imo: "9874102", lastUpdate: "27 Jun 2026" },
+    { id: "sl50-171", brandId: "sanlorenzo", code: "SL50-171", name: "CONTIGO", status: "delivered", stage: "delivered", productionDate: "2024-09-02", brandDeliveryDate: "2025-11-10T11:05:47Z", customerDeliveryDate: "2026-03-14T14:20:11Z", mmsi: "256962000", imo: "9876543", lastUpdate: "03 Jun 2026", assetUuid: "a3f9c1e0-7b42-4d18-9f6a-2c5e8b0d4471" },
+    { id: "sp110-05", brandId: "sanlorenzo", code: "SP110-05", name: "SuperV", status: "delivered", stage: "delivered", productionDate: "2024-01-10", brandDeliveryDate: "2025-07-04T08:30:15Z", customerDeliveryDate: "2026-05-20T16:12:45Z", mmsi: "533133096", lastUpdate: "20 May 2026" },
+    { id: "sd90-119", brandId: "sanlorenzo", code: "SD90-119", name: "MY SAL", status: "delivered", stage: "pre_delivery", productionDate: "2025-06-18", brandDeliveryDate: "2026-05-02T10:15:27Z", mmsi: "256498000", imo: "9812477", lastUpdate: "20 May 2026" },
+    { id: "sx88-134", brandId: "sanlorenzo", code: "SX88-134", status: "delivered", stage: "delivered", productionDate: "2024-03-05", brandDeliveryDate: "2025-10-12T10:45:22Z", customerDeliveryDate: "2026-05-18T13:05:09Z", mmsi: "256004052", lastUpdate: "20 May 2026" },
+    { id: "sl200-72", brandId: "sanlorenzo", code: "SL200-72", status: "delivered", stage: "delivered", productionDate: "2023-11-22", brandDeliveryDate: "2025-06-30T09:00:03Z", customerDeliveryDate: "2026-05-05T17:33:50Z", mmsi: "538072431", lastUpdate: "20 May 2026" },
+    { id: "sl90a-877", brandId: "sanlorenzo", code: "SL90A-877", status: "production", stage: "production", productionDate: "2026-02-14", mmsi: null, lastUpdate: "28 May 2026" },
+    { id: "sp92-16", brandId: "sanlorenzo", code: "SP92-16", status: "production", mmsi: null, lastUpdate: "28 May 2026" },
+    { id: "sx88-164", brandId: "sanlorenzo", code: "SX88-164", status: "production", mmsi: null, lastUpdate: "20 May 2026" },
+    { id: "sl96a-885", brandId: "sanlorenzo", code: "SL96A-885", status: "production", mmsi: null, lastUpdate: "20 May 2026" },
   ],
 };
 
 // Seed team↔yacht access links (Sanlorenzo Tech Dep works a few boats).
 export const teamYachtLinks: TeamYachtLink[] = [
-  { shipyardId: "sanlorenzo", teamId: "tech-dep", yachtId: "sl50-171" },
-  { shipyardId: "sanlorenzo", teamId: "tech-dep", yachtId: "sd118-129" },
-  { shipyardId: "sanlorenzo", teamId: "tech-dep", yachtId: "sp110-05" },
+  { brandId: "sanlorenzo", teamId: "tech-dep", yachtId: "sl50-171" },
+  { brandId: "sanlorenzo", teamId: "tech-dep", yachtId: "sd118-129" },
+  { brandId: "sanlorenzo", teamId: "tech-dep", yachtId: "sp110-05" },
 ];
 
 // Owner-team roster for a specific yacht (keyed by yacht id).
@@ -291,36 +291,36 @@ export const dataAccessByYacht: Record<string, DataAccessGrant[]> = {
 
 // ---- lookups -------------------------------------------------------------
 
-export const groupById = (id: string) => groups.find((g) => g.id === id);
-export const shipyardById = (id: string) => shipyards.find((s) => s.id === id);
-export const shipyardsInGroup = (groupId: string) =>
-  shipyards.filter((s) => s.groupId === groupId);
-export const peopleInGroup = (groupId: string) => peopleByGroup[groupId] ?? [];
+export const accountById = (id: string) => accounts.find((g) => g.id === id);
+export const brandById = (id: string) => brands.find((s) => s.id === id);
+export const brandsInAccount = (accountId: string) =>
+  brands.filter((s) => s.accountId === accountId);
+export const peopleInAccount = (accountId: string) => peopleByAccount[accountId] ?? [];
 
-export interface GroupWithShipyards extends Group {
-  shipyards: Shipyard[];
+export interface AccountWithBrands extends Account {
+  brands: Brand[];
   yachts: number;
   users: number;
 }
 
-// Groups joined with their shipyards + aggregate counts, for the main page.
-export const groupsWithShipyards: GroupWithShipyards[] = groups.map((g) => {
-  const inGroup = shipyardsInGroup(g.id);
+// Accounts joined with their brands + aggregate counts, for the main page.
+export const accountsWithBrands: AccountWithBrands[] = accounts.map((g) => {
+  const inAccount = brandsInAccount(g.id);
   return {
     ...g,
-    shipyards: inGroup,
-    yachts: inGroup.reduce((n, s) => n + s.yachts, 0),
-    users: inGroup.reduce((n, s) => n + s.users, 0),
+    brands: inAccount,
+    yachts: inAccount.reduce((n, s) => n + s.yachts, 0),
+    users: inAccount.reduce((n, s) => n + s.users, 0),
   };
 });
-export const teamById = (shipyardId: string, teamId: string) =>
-  (teamsByShipyard[shipyardId] ?? []).find((t) => t.id === teamId);
-export const yachtById = (shipyardId: string, yachtId: string) =>
-  (yachtsByShipyard[shipyardId] ?? []).find((y) => y.id === yachtId);
+export const teamById = (brandId: string, teamId: string) =>
+  (teamsByBrand[brandId] ?? []).find((t) => t.id === teamId);
+export const yachtById = (brandId: string, yachtId: string) =>
+  (yachtsByBrand[brandId] ?? []).find((y) => y.id === yachtId);
 
 export const totals = {
-  shipyards: shipyards.length,
-  groups: groups.length,
+  brands: brands.length,
+  accounts: accounts.length,
   // Fleet-wide figure shown in the header (includes yachts not enumerated
   // in the mock rows above); matches the design's summary count.
   yachts: 67,
@@ -343,7 +343,7 @@ export const STAGE_META: Record<
 > = {
   production: { label: "In production", short: "In production", tone: "warn" },
   pre_delivery: {
-    label: "Delivered to shipyard",
+    label: "Delivered to brand",
     short: "Pre-delivery",
     tone: "brand",
   },
@@ -355,14 +355,14 @@ export const STAGE_META: Record<
 };
 
 // Who can access the vessel at each stage (access policy shown on the yacht).
-// The production-team chip is scoped to the actual shipyard name.
+// The production-team chip is scoped to the actual brand name.
 export const stageAccessLabels = (
   stage: YachtStage,
-  shipyardName: string
+  brandName: string
 ): string[] => {
   if (stage === "production") return ["SailADV · Installation"];
   if (stage === "pre_delivery")
-    return ["SailADV", `${shipyardName} · Production`];
+    return ["SailADV", `${brandName} · Production`];
   return ["Owner team", "SailADV"];
 };
 

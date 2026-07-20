@@ -10,8 +10,8 @@ import {
 } from "../components/drawers";
 import {
   useStore,
-  shipyardById,
-  groupById,
+  brandById,
+  accountById,
   teamById,
   membersInTeam,
   yachtsForTeam,
@@ -37,35 +37,35 @@ const statusLabel: Record<MemberStatus, string> = {
 
 export default function TeamDetail() {
   useStore();
-  const { shipyardId = "", teamId = "" } = useParams();
+  const { brandId = "", teamId = "" } = useParams();
   const navigate = useNavigate();
 
   const [personOpen, setPersonOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
 
-  const shipyard = shipyardById(shipyardId);
-  const team = teamById(shipyardId, teamId);
-  if (!shipyard || !team) return <Navigate to="/" replace />;
+  const brand = brandById(brandId);
+  const team = teamById(brandId, teamId);
+  if (!brand || !team) return <Navigate to="/" replace />;
 
-  const group = groupById(shipyard.groupId);
+  const account = accountById(brand.accountId);
   const members = membersInTeam(teamId);
-  const linkedYachts = yachtsForTeam(shipyardId, teamId);
+  const linkedYachts = yachtsForTeam(brandId, teamId);
 
   return (
     <>
       <PageHeader
         crumbs={[
           { label: "Access management", to: "/" },
-          ...(group
-            ? [{ label: `${group.name} Account`, to: `/groups/${group.id}` }]
+          ...(account
+            ? [{ label: `${account.name} Account`, to: `/accounts/${account.id}` }]
             : []),
-          { label: shipyard.name, to: `/shipyards/${shipyardId}` },
+          { label: brand.name, to: `/brands/${brandId}` },
           { label: team.name },
         ]}
         title={team.name}
         // A headcount, not a status — this was a green "success" badge.
         badge={<PeopleCount value={team.memberCount}>members</PeopleCount>}
-        subtitle={shipyard.name}
+        subtitle={brand.name}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -169,7 +169,7 @@ export default function TeamDetail() {
               <div className="flex items-start justify-between">
                 <button
                   onClick={() =>
-                    navigate(`/shipyards/${shipyardId}/yachts/${y.id}`)
+                    navigate(`/brands/${brandId}/yachts/${y.id}`)
                   }
                   className="text-left"
                 >
@@ -177,7 +177,7 @@ export default function TeamDetail() {
                     {yachtLabel(y)}
                   </div>
                   <div className="text-xs text-ink-4">
-                    {shipyard.name} · {STAGE_META[yachtStage(y)].short}
+                    {brand.name} · {STAGE_META[yachtStage(y)].short}
                   </div>
                 </button>
               </div>
@@ -199,7 +199,7 @@ export default function TeamDetail() {
 
           <p className="mt-3 flex gap-2 text-xs leading-relaxed text-muted">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-nav-section" />
-            The shipyard sees a yacht only while the owner&apos;s PoA consents to
+            The brand sees a yacht only while the owner&apos;s PoA consents to
             data access.
           </p>
         </aside>
@@ -208,7 +208,7 @@ export default function TeamDetail() {
       <AddTeamPeopleDrawer
         open={personOpen}
         onClose={() => setPersonOpen(false)}
-        shipyardId={shipyardId}
+        brandId={brandId}
         teamId={teamId}
         teamName={team.name}
       />
@@ -216,8 +216,8 @@ export default function TeamDetail() {
       <AssignYachtsToTeamDrawer
         open={linkOpen}
         onClose={() => setLinkOpen(false)}
-        shipyardId={shipyardId}
-        shipyardName={shipyard.name}
+        brandId={brandId}
+        brandName={brand.name}
         teamId={teamId}
         teamName={team.name}
       />

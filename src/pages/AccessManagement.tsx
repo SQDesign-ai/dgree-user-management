@@ -4,16 +4,16 @@ import { Plus, ChevronRight, Users } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { Button, Card, SearchInput, Tabs } from "../components/ui";
 import { PeopleCount } from "@sqdesign-ai/dgree-ds-react";
-import { CreateGroupDrawer, CreateShipyardDrawer } from "../components/drawers";
+import { CreateAccountDrawer, CreateBrandDrawer } from "../components/drawers";
 import { sailAdvTeams } from "../data/mock";
 import { FEATURES } from "../config";
 import {
   useStore,
-  getGroupsWithShipyards,
+  getAccountsWithBrands,
   getTotals,
-  type GroupWithShipyards,
+  type AccountWithBrands,
 } from "../store";
-import type { Shipyard } from "../data/mock";
+import type { Brand } from "../data/mock";
 
 function CountPill({ value, label }: { value: number; label: string }) {
   return (
@@ -27,40 +27,40 @@ function CountPill({ value, label }: { value: number; label: string }) {
 }
 
 function AccountCard({
-  group,
-  onAddShipyard,
+  account,
+  onAddBrand,
 }: {
-  group: GroupWithShipyards;
-  onAddShipyard: (groupId: string) => void;
+  account: AccountWithBrands;
+  onAddBrand: (accountId: string) => void;
 }) {
   const navigate = useNavigate();
-  // Users are counted per shipyard, so an account's headcount is the sum of
+  // Users are counted per brand, so an account's headcount is the sum of
   // its own. This is the number the licence agreement is measured against.
-  const users = group.shipyards.reduce(
-    (n: number, s: Shipyard) => n + s.users,
+  const users = account.brands.reduce(
+    (n: number, s: Brand) => n + s.users,
     0
   );
   return (
     <Card className="mb-4 break-inside-avoid">
       <button
-        onClick={() => navigate(`/groups/${group.id}`)}
+        onClick={() => navigate(`/accounts/${account.id}`)}
         className="flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-hover/30"
       >
-        <span className="font-semibold text-white">{group.name} account</span>
+        <span className="font-semibold text-white">{account.name} account</span>
         <span className="flex items-center gap-3">
           <PeopleCount value={users} />
           <span className="text-xs text-muted">
-            {group.shipyards.length}{" "}
-            {group.shipyards.length === 1 ? "shipyard" : "shipyards"}
+            {account.brands.length}{" "}
+            {account.brands.length === 1 ? "brand" : "brands"}
           </span>
         </span>
       </button>
 
       <div className="border-t border-line-soft/60">
-        {group.shipyards.map((s: Shipyard) => (
+        {account.brands.map((s: Brand) => (
           <button
             key={s.id}
-            onClick={() => navigate(`/shipyards/${s.id}`)}
+            onClick={() => navigate(`/brands/${s.id}`)}
             className="flex w-full items-center justify-between gap-3 border-b border-line-soft/40 px-5 py-3 text-left transition-colors last:border-0 hover:bg-hover/40"
           >
             <span className="min-w-0 truncate font-medium text-white">
@@ -73,18 +73,18 @@ function AccountCard({
             </span>
           </button>
         ))}
-        {group.shipyards.length === 0 && (
-          <div className="px-5 py-4 text-xs text-muted">No shipyards yet.</div>
+        {account.brands.length === 0 && (
+          <div className="px-5 py-4 text-xs text-muted">No brands yet.</div>
         )}
       </div>
 
-      {FEATURES.createShipyard && (
+      {FEATURES.createBrand && (
         <button
-          onClick={() => onAddShipyard(group.id)}
+          onClick={() => onAddBrand(account.id)}
           className="flex w-full items-center justify-center gap-1.5 border-t border-line-soft/60 py-2.5 text-xs font-medium text-brand transition-colors hover:bg-brand/5"
         >
           <Plus className="size-3.5" />
-          Add shipyard
+          Add brand
         </button>
       )}
     </Card>
@@ -93,23 +93,23 @@ function AccountCard({
 
 function AccountsPanel() {
   const [query, setQuery] = useState("");
-  const [groupOpen, setGroupOpen] = useState(false);
-  const [shipyardForGroup, setShipyardForGroup] = useState<string | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [brandForAccount, setBrandForAccount] = useState<string | null>(null);
 
-  const groups = getGroupsWithShipyards();
-  const filteredGroups = useMemo(() => {
+  const accounts = getAccountsWithBrands();
+  const filteredAccounts = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return groups;
-    return groups
+    if (!q) return accounts;
+    return accounts
       .map((g) => ({
         ...g,
-        shipyards: g.shipyards.filter(
+        brands: g.brands.filter(
           (s) =>
             s.name.toLowerCase().includes(q) || g.name.toLowerCase().includes(q)
         ),
       }))
-      .filter((g) => g.shipyards.length > 0 || g.name.toLowerCase().includes(q));
-  }, [query, groups]);
+      .filter((g) => g.brands.length > 0 || g.name.toLowerCase().includes(q));
+  }, [query, accounts]);
 
   return (
     <>
@@ -118,12 +118,12 @@ function AccountsPanel() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search accounts & shipyards"
+            placeholder="Search accounts & brands"
             className="w-full rounded-lg border border-line bg-surface/60 px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
           />
         </div>
-        {FEATURES.createGroup && (
-          <Button onClick={() => setGroupOpen(true)}>
+        {FEATURES.createAccount && (
+          <Button onClick={() => setAccountOpen(true)}>
             <Plus className="size-4" />
             Add account
           </Button>
@@ -131,20 +131,20 @@ function AccountsPanel() {
       </div>
 
       <div className="gap-4 lg:columns-2">
-        {filteredGroups.map((g) => (
+        {filteredAccounts.map((g) => (
           <AccountCard
             key={g.id}
-            group={g}
-            onAddShipyard={(id) => setShipyardForGroup(id)}
+            account={g}
+            onAddBrand={(id) => setBrandForAccount(id)}
           />
         ))}
       </div>
 
-      <CreateGroupDrawer open={groupOpen} onClose={() => setGroupOpen(false)} />
-      <CreateShipyardDrawer
-        open={!!shipyardForGroup}
-        groupId={shipyardForGroup ?? undefined}
-        onClose={() => setShipyardForGroup(null)}
+      <CreateAccountDrawer open={accountOpen} onClose={() => setAccountOpen(false)} />
+      <CreateBrandDrawer
+        open={!!brandForAccount}
+        accountId={brandForAccount ?? undefined}
+        onClose={() => setBrandForAccount(null)}
       />
     </>
   );
@@ -196,7 +196,7 @@ export default function AccessManagement() {
     <>
       <PageHeader
         title="Access management"
-        subtitle={`${totals.shipyards} shipyards across ${totals.groups} accounts · ${totals.yachts} yachts`}
+        subtitle={`${totals.brands} brands across ${totals.accounts} accounts · ${totals.yachts} yachts`}
       />
 
       <div className="mb-5">

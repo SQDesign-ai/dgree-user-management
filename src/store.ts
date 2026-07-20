@@ -8,22 +8,22 @@
 // -------------------------------------------------------------------------
 import { useSyncExternalStore } from "react";
 import {
-  groups as seedGroups,
-  shipyards as seedShipyards,
-  teamsByShipyard as seedTeams,
+  accounts as seedAccounts,
+  brands as seedBrands,
+  teamsByBrand as seedTeams,
   membersByTeam as seedMembers,
-  yachtsByShipyard as seedYachts,
+  yachtsByBrand as seedYachts,
   ownerTeamByYacht as seedOwnerTeam,
-  peopleByGroup as seedPeople,
+  peopleByAccount as seedPeople,
   directoryPeople as seedDirectory,
   teamYachtLinks as seedLinks,
-  type Group,
-  type Shipyard,
+  type Account,
+  type Brand,
   type Team,
   type Member,
   type Yacht,
   type OwnerTeamMember,
-  type GroupPerson,
+  type AccountPerson,
   type Person,
   type TeamYachtLink,
   type MemberStatus,
@@ -34,26 +34,26 @@ import {
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
 interface State {
-  groups: Group[];
-  shipyards: Shipyard[];
-  teamsByShipyard: Record<string, Team[]>;
+  accounts: Account[];
+  brands: Brand[];
+  teamsByBrand: Record<string, Team[]>;
   membersByTeam: Record<string, Member[]>;
-  yachtsByShipyard: Record<string, Yacht[]>;
+  yachtsByBrand: Record<string, Yacht[]>;
   ownerTeamByYacht: Record<string, OwnerTeamMember[]>;
-  peopleByGroup: Record<string, GroupPerson[]>;
+  peopleByAccount: Record<string, AccountPerson[]>;
   people: Person[]; // shared directory (candidates for team membership)
   teamYachtLinks: TeamYachtLink[]; // many-to-many team↔yacht access
 }
 
 function seededState(): State {
   return {
-    groups: clone(seedGroups),
-    shipyards: clone(seedShipyards),
-    teamsByShipyard: clone(seedTeams),
+    accounts: clone(seedAccounts),
+    brands: clone(seedBrands),
+    teamsByBrand: clone(seedTeams),
     membersByTeam: clone(seedMembers),
-    yachtsByShipyard: clone(seedYachts),
+    yachtsByBrand: clone(seedYachts),
     ownerTeamByYacht: clone(seedOwnerTeam),
-    peopleByGroup: clone(seedPeople),
+    peopleByAccount: clone(seedPeople),
     people: clone(seedDirectory),
     teamYachtLinks: clone(seedLinks),
   };
@@ -65,7 +65,9 @@ function seededState(): State {
 // data shape changes. Clear it from the UI via resetStore().
 
 const STORAGE_KEY = "dgree.access.v1";
-const STORAGE_VERSION = 7;
+// 8: accounts/brands rename — the state keys changed, so older snapshots
+// would deserialise into a shape this code no longer reads.
+const STORAGE_VERSION = 8;
 
 function loadState(): State {
   try {
@@ -156,104 +158,104 @@ function handleFromName(name: string) {
 
 // ---- read accessors ------------------------------------------------------
 
-export const getGroups = () => state.groups;
-export const getShipyards = () => state.shipyards;
+export const getAccounts = () => state.accounts;
+export const getBrands = () => state.brands;
 
-export const groupById = (id: string) => state.groups.find((g) => g.id === id);
-export const shipyardById = (id: string) =>
-  state.shipyards.find((s) => s.id === id);
-export const shipyardsInGroup = (groupId: string) =>
-  state.shipyards.filter((s) => s.groupId === groupId);
-/** Brands not yet attached to any group — the pool for "Create group". */
-export const ungroupedShipyards = () =>
-  state.shipyards.filter((s) => !s.groupId);
-export const peopleInGroup = (groupId: string) =>
-  state.peopleByGroup[groupId] ?? [];
+export const accountById = (id: string) => state.accounts.find((g) => g.id === id);
+export const brandById = (id: string) =>
+  state.brands.find((s) => s.id === id);
+export const brandsInAccount = (accountId: string) =>
+  state.brands.filter((s) => s.accountId === accountId);
+/** Brands not yet attached to any account — the pool for "Create account". */
+export const unassignedBrands = () =>
+  state.brands.filter((s) => !s.accountId);
+export const peopleInAccount = (accountId: string) =>
+  state.peopleByAccount[accountId] ?? [];
 export const getDirectory = () => state.people;
 export const personById = (id: string) =>
   state.people.find((p) => p.id === id);
 
 /**
- * People who may be linked into a team in this group: regulars whose home group
- * matches, plus all SailADV people (who span groups). A blank groupId (e.g. a
- * shipyard not yet assigned) yields SailADV people only.
+ * People who may be linked into a team in this account: regulars whose home account
+ * matches, plus all SailADV people (who span accounts). A blank accountId (e.g. a
+ * brand not yet assigned) yields SailADV people only.
  */
-export const candidatePeopleForGroup = (groupId: string): Person[] =>
+export const candidatePeopleForAccount = (accountId: string): Person[] =>
   state.people.filter(
-    (p) => p.kind === "sail-adv" || (!!groupId && p.groupId === groupId)
+    (p) => p.kind === "sail-adv" || (!!accountId && p.accountId === accountId)
   );
 
 /**
- * People who may be linked into a team in this shipyard (its group's regulars +
+ * People who may be linked into a team in this brand (its account's regulars +
  * all SailADV). Optionally excludes anyone already in `excludeTeamId`.
  */
-export const candidatePeopleForShipyard = (
-  shipyardId: string,
+export const candidatePeopleForBrand = (
+  brandId: string,
   excludeTeamId?: string
 ): Person[] => {
-  const sy = shipyardById(shipyardId);
+  const sy = brandById(brandId);
   if (!sy) return [];
   const already = new Set(
     excludeTeamId ? membersInTeam(excludeTeamId).map((m) => m.id) : []
   );
-  return candidatePeopleForGroup(sy.groupId).filter((p) => !already.has(p.id));
+  return candidatePeopleForAccount(sy.accountId).filter((p) => !already.has(p.id));
 };
 
 // ---- team ↔ yacht access links ------------------------------------------
 
-export const yachtsForTeam = (shipyardId: string, teamId: string): Yacht[] => {
+export const yachtsForTeam = (brandId: string, teamId: string): Yacht[] => {
   const ids = new Set(
     state.teamYachtLinks
-      .filter((l) => l.shipyardId === shipyardId && l.teamId === teamId)
+      .filter((l) => l.brandId === brandId && l.teamId === teamId)
       .map((l) => l.yachtId)
   );
-  return yachtsInShipyard(shipyardId).filter((y) => ids.has(y.id));
+  return yachtsInBrand(brandId).filter((y) => ids.has(y.id));
 };
 
-export const teamsForYacht = (shipyardId: string, yachtId: string): Team[] => {
+export const teamsForYacht = (brandId: string, yachtId: string): Team[] => {
   const ids = new Set(
     state.teamYachtLinks
-      .filter((l) => l.shipyardId === shipyardId && l.yachtId === yachtId)
+      .filter((l) => l.brandId === brandId && l.yachtId === yachtId)
       .map((l) => l.teamId)
   );
-  return teamsInShipyard(shipyardId).filter((t) => ids.has(t.id));
+  return teamsInBrand(brandId).filter((t) => ids.has(t.id));
 };
-export const teamsInShipyard = (shipyardId: string) =>
-  state.teamsByShipyard[shipyardId] ?? [];
-export const yachtsInShipyard = (shipyardId: string) =>
-  state.yachtsByShipyard[shipyardId] ?? [];
+export const teamsInBrand = (brandId: string) =>
+  state.teamsByBrand[brandId] ?? [];
+export const yachtsInBrand = (brandId: string) =>
+  state.yachtsByBrand[brandId] ?? [];
 export const membersInTeam = (teamId: string) =>
   state.membersByTeam[teamId] ?? [];
 export const ownerTeamOfYacht = (yachtId: string) =>
   state.ownerTeamByYacht[yachtId] ?? [];
-export const teamById = (shipyardId: string, teamId: string) =>
-  teamsInShipyard(shipyardId).find((t) => t.id === teamId);
-export const yachtById = (shipyardId: string, yachtId: string) =>
-  yachtsInShipyard(shipyardId).find((y) => y.id === yachtId);
+export const teamById = (brandId: string, teamId: string) =>
+  teamsInBrand(brandId).find((t) => t.id === teamId);
+export const yachtById = (brandId: string, yachtId: string) =>
+  yachtsInBrand(brandId).find((y) => y.id === yachtId);
 
-export interface GroupWithShipyards extends Group {
-  shipyards: Shipyard[];
+export interface AccountWithBrands extends Account {
+  brands: Brand[];
   yachts: number;
   users: number;
 }
 
-export const getGroupsWithShipyards = (): GroupWithShipyards[] =>
-  state.groups.map((g) => {
-    const inGroup = shipyardsInGroup(g.id);
+export const getAccountsWithBrands = (): AccountWithBrands[] =>
+  state.accounts.map((g) => {
+    const inAccount = brandsInAccount(g.id);
     return {
       ...g,
-      shipyards: inGroup,
-      yachts: inGroup.reduce((n, s) => n + s.yachts, 0),
-      users: inGroup.reduce((n, s) => n + s.users, 0),
+      brands: inAccount,
+      yachts: inAccount.reduce((n, s) => n + s.yachts, 0),
+      users: inAccount.reduce((n, s) => n + s.users, 0),
     };
   });
 
 export const getTotals = () => ({
-  shipyards: state.shipyards.length,
-  groups: state.groups.length,
+  brands: state.brands.length,
+  accounts: state.accounts.length,
   yachts: Math.max(
     67,
-    state.shipyards.reduce((n, s) => n + s.yachts, 0)
+    state.brands.reduce((n, s) => n + s.yachts, 0)
   ),
 });
 
@@ -266,7 +268,7 @@ function registerPerson(p: Person): string {
 }
 
 /** Link an existing directory person into a team (no-op if already a member). */
-function linkPersonToTeam(teamId: string, shipyardId: string, personId: string) {
+function linkPersonToTeam(teamId: string, brandId: string, personId: string) {
   const person = personById(personId);
   if (!person) return;
   const list = (state.membersByTeam[teamId] ??= []);
@@ -278,20 +280,20 @@ function linkPersonToTeam(teamId: string, shipyardId: string, personId: string) 
     status: person.status,
     kind: person.kind,
   });
-  const team = teamById(shipyardId, teamId);
+  const team = teamById(brandId, teamId);
   if (team) team.memberCount += 1;
 }
 
-export function addGroup(
+export function addAccount(
   name: string,
-  opts?: { shipyardIds?: string[] }
+  opts?: { brandIds?: string[] }
 ): string {
-  const id = uniqueId(slugify(name), (i) => !!groupById(i));
-  state.groups.push({ id, name: name.trim() });
-  // Attach any selected ungrouped brands to the new group.
-  (opts?.shipyardIds ?? []).forEach((sid) => {
-    const sy = shipyardById(sid);
-    if (sy && !sy.groupId) sy.groupId = id;
+  const id = uniqueId(slugify(name), (i) => !!accountById(i));
+  state.accounts.push({ id, name: name.trim() });
+  // Attach any selected unassigned brands to the new account.
+  (opts?.brandIds ?? []).forEach((sid) => {
+    const sy = brandById(sid);
+    if (sy && !sy.accountId) sy.accountId = id;
   });
   emit();
   return id;
@@ -300,10 +302,10 @@ export function addGroup(
 /** Add an existing directory person to an existing team. */
 export function addExistingTeamMember(
   teamId: string,
-  shipyardId: string,
+  brandId: string,
   personId: string
 ) {
-  linkPersonToTeam(teamId, shipyardId, personId);
+  linkPersonToTeam(teamId, brandId, personId);
   emit();
 }
 
@@ -313,35 +315,35 @@ const STANDARD_DEPARTMENTS = [
   "Warranty Dep",
 ];
 
-export function addShipyard(
-  groupId: string,
+export function addBrand(
+  accountId: string,
   name: string,
   opts?: { standardDepartments?: boolean }
 ): string {
-  const id = uniqueId(slugify(name), (i) => !!shipyardById(i));
-  const shipyard: Shipyard = {
+  const id = uniqueId(slugify(name), (i) => !!brandById(i));
+  const brand: Brand = {
     id,
     name: name.trim(),
-    groupId,
+    accountId,
     users: 0,
     yachts: 0,
     teams: 0,
   };
-  state.shipyards.push(shipyard);
-  state.teamsByShipyard[id] = [];
-  state.yachtsByShipyard[id] = [];
+  state.brands.push(brand);
+  state.teamsByBrand[id] = [];
+  state.yachtsByBrand[id] = [];
 
   if (opts?.standardDepartments) {
     STANDARD_DEPARTMENTS.forEach((n) => {
-      state.teamsByShipyard[id].push({
+      state.teamsByBrand[id].push({
         id: slugify(n),
-        shipyardId: id,
+        brandId: id,
         name: n,
         memberCount: 0,
         assignedBoats: 0,
       });
     });
-    shipyard.teams = STANDARD_DEPARTMENTS.length;
+    brand.teams = STANDARD_DEPARTMENTS.length;
   }
 
   emit();
@@ -349,63 +351,63 @@ export function addShipyard(
 }
 
 export function addTeam(
-  shipyardId: string,
+  brandId: string,
   input: { name: string; memberIds?: string[] }
 ): string {
   const id = uniqueId(
     slugify(input.name),
-    (i) => !!teamById(shipyardId, i)
+    (i) => !!teamById(brandId, i)
   );
-  const list = (state.teamsByShipyard[shipyardId] ??= []);
+  const list = (state.teamsByBrand[brandId] ??= []);
   list.push({
     id,
-    shipyardId,
+    brandId,
     name: input.name.trim(),
     memberCount: 0,
     assignedBoats: 0,
   });
-  const sy = shipyardById(shipyardId);
+  const sy = brandById(brandId);
   if (sy) sy.teams += 1;
   // Link any pre-selected existing people as founding members.
   (input.memberIds ?? []).forEach((pid) =>
-    linkPersonToTeam(id, shipyardId, pid)
+    linkPersonToTeam(id, brandId, pid)
   );
   emit();
   return id;
 }
 
 export function addYacht(
-  shipyardId: string,
+  brandId: string,
   input: {
     code: string;
     name?: string;
     mmsi?: string;
     stage?: YachtStage;
-    shipyardDeliveryDate?: string;
+    brandDeliveryDate?: string;
     customerDeliveryDate?: string;
     assetUuid?: string;
   }
 ): string {
-  const id = uniqueId(slugify(input.code), (i) => !!yachtById(shipyardId, i));
+  const id = uniqueId(slugify(input.code), (i) => !!yachtById(brandId, i));
   const mmsi = input.mmsi?.trim() || null;
   const stage = input.stage ?? "production";
   const today = new Date().toISOString();
-  const list = (state.yachtsByShipyard[shipyardId] ??= []);
+  const list = (state.yachtsByBrand[brandId] ??= []);
   list.push({
     id,
-    shipyardId,
+    brandId,
     code: input.code.trim(),
     name: input.name?.trim() || undefined,
     status: stage === "production" ? "production" : "delivered",
     stage,
     productionDate: today,
-    shipyardDeliveryDate: input.shipyardDeliveryDate || undefined,
+    brandDeliveryDate: input.brandDeliveryDate || undefined,
     customerDeliveryDate: input.customerDeliveryDate || undefined,
     mmsi,
     lastUpdate: "Just now",
     assetUuid: input.assetUuid?.trim() || undefined,
   });
-  const sy = shipyardById(shipyardId);
+  const sy = brandById(brandId);
   if (sy) sy.yachts += 1;
   emit();
   return id;
@@ -413,11 +415,11 @@ export function addYacht(
 
 /** Set (or clear) a yacht's D.gree Asset UUID — pasted from the core backend. */
 export function setYachtAssetUuid(
-  shipyardId: string,
+  brandId: string,
   yachtId: string,
   uuid: string
 ) {
-  const y = yachtById(shipyardId, yachtId);
+  const y = yachtById(brandId, yachtId);
   if (!y) return;
   y.assetUuid = uuid.trim() || undefined;
   emit();
@@ -425,11 +427,11 @@ export function setYachtAssetUuid(
 
 /** Identity fields edited together from the yacht-details card. */
 export function setYachtDetails(
-  shipyardId: string,
+  brandId: string,
   yachtId: string,
   input: { assetUuid: string; mmsi: string; imo: string }
 ) {
-  const y = yachtById(shipyardId, yachtId);
+  const y = yachtById(brandId, yachtId);
   if (!y) return;
   y.assetUuid = input.assetUuid.trim() || undefined;
   y.mmsi = input.mmsi.trim() || null;
@@ -442,66 +444,66 @@ export function setYachtDetails(
  * `date` is omitted, today is used (ISO yyyy-mm-dd).
  */
 export function setYachtStage(
-  shipyardId: string,
+  brandId: string,
   yachtId: string,
   stage: YachtStage,
   date?: string
 ) {
-  const y = yachtById(shipyardId, yachtId);
+  const y = yachtById(brandId, yachtId);
   if (!y) return;
   const stamp = date || new Date().toISOString();
   y.stage = stage;
   y.status = stage === "production" ? "production" : "delivered";
   if (stage === "production") {
     y.productionDate = y.productionDate || stamp;
-    y.shipyardDeliveryDate = undefined;
+    y.brandDeliveryDate = undefined;
     y.customerDeliveryDate = undefined;
   } else if (stage === "pre_delivery") {
     // keep an existing date (e.g. on revert); stamp today when first reached
-    y.shipyardDeliveryDate = date || y.shipyardDeliveryDate || stamp;
+    y.brandDeliveryDate = date || y.brandDeliveryDate || stamp;
     y.customerDeliveryDate = undefined;
   } else {
-    y.shipyardDeliveryDate = y.shipyardDeliveryDate || stamp;
+    y.brandDeliveryDate = y.brandDeliveryDate || stamp;
     y.customerDeliveryDate = date || y.customerDeliveryDate || stamp;
   }
   y.lastUpdate = "Just now";
   emit();
 }
 
-/** Set the exact set of yachts a team can access (within one shipyard). */
+/** Set the exact set of yachts a team can access (within one brand). */
 export function setTeamYachtLinks(
-  shipyardId: string,
+  brandId: string,
   teamId: string,
   yachtIds: string[]
 ) {
   const keep = new Set(yachtIds);
   state.teamYachtLinks = state.teamYachtLinks.filter(
-    (l) => !(l.shipyardId === shipyardId && l.teamId === teamId)
+    (l) => !(l.brandId === brandId && l.teamId === teamId)
   );
   keep.forEach((yachtId) =>
-    state.teamYachtLinks.push({ shipyardId, teamId, yachtId })
+    state.teamYachtLinks.push({ brandId, teamId, yachtId })
   );
   emit();
 }
 
-/** Set the exact set of teams that can access a yacht (within one shipyard). */
+/** Set the exact set of teams that can access a yacht (within one brand). */
 export function setYachtTeamLinks(
-  shipyardId: string,
+  brandId: string,
   yachtId: string,
   teamIds: string[]
 ) {
   const keep = new Set(teamIds);
   state.teamYachtLinks = state.teamYachtLinks.filter(
-    (l) => !(l.shipyardId === shipyardId && l.yachtId === yachtId)
+    (l) => !(l.brandId === brandId && l.yachtId === yachtId)
   );
   keep.forEach((teamId) =>
-    state.teamYachtLinks.push({ shipyardId, teamId, yachtId })
+    state.teamYachtLinks.push({ brandId, teamId, yachtId })
   );
   emit();
 }
 
-export function addGroupPerson(
-  groupId: string,
+export function addAccountPerson(
+  accountId: string,
   input: {
     name: string;
     handle?: string;
@@ -510,7 +512,7 @@ export function addGroupPerson(
     status: MemberStatus;
   }
 ) {
-  const list = (state.peopleByGroup[groupId] ??= []);
+  const list = (state.peopleByAccount[accountId] ??= []);
   const id = uniqueId(slugify(input.name), (i) => list.some((p) => p.id === i));
   const handle = input.handle?.trim() || handleFromName(input.name);
   list.push({
@@ -522,21 +524,21 @@ export function addGroupPerson(
     status: input.status,
   });
   // Also register in the shared directory so they become team candidates in
-  // this group.
+  // this account.
   registerPerson({
     id,
     name: input.name.trim(),
     handle,
     status: input.status,
     kind: "regular",
-    groupId,
+    accountId,
   });
   emit();
 }
 
 export function addTeamMember(
   teamId: string,
-  shipyardId: string,
+  brandId: string,
   input: { name: string; handle?: string; status: MemberStatus }
 ) {
   const list = (state.membersByTeam[teamId] ??= []);
@@ -548,18 +550,18 @@ export function addTeamMember(
     handle,
     status: input.status,
   });
-  const team = teamById(shipyardId, teamId);
+  const team = teamById(brandId, teamId);
   if (team) team.memberCount += 1;
   // A freshly invited person joins the directory as a regular in this
-  // shipyard's group, so they can be reused on other teams later.
-  const sy = shipyardById(shipyardId);
+  // brand's account, so they can be reused on other teams later.
+  const sy = brandById(brandId);
   registerPerson({
     id,
     name: input.name.trim(),
     handle,
     status: input.status,
     kind: "regular",
-    groupId: sy?.groupId || undefined,
+    accountId: sy?.accountId || undefined,
   });
   emit();
 }

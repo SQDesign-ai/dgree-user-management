@@ -9,7 +9,7 @@ export default function FleetPage() {
     <>
       <PageHeader
         title="D.gree fleet"
-        subtitle={`${totals.yachts} yachts across ${totals.groups} accounts`}
+        subtitle={`${totals.yachts} yachts across ${totals.accounts} accounts`}
       />
       <AllYachtsPanel />
     </>

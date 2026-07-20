@@ -5,15 +5,15 @@ import { PageHeader } from "../components/PageHeader";
 import { Badge, Button, Card, SearchInput, Tabs, Avatar } from "../components/ui";
 import {
   CreateUserDrawer,
-  CreateShipyardDrawer,
+  CreateBrandDrawer,
   fullName,
 } from "../components/drawers";
 import {
   useStore,
-  groupById,
-  shipyardsInGroup,
-  peopleInGroup,
-  addGroupPerson,
+  accountById,
+  brandsInAccount,
+  peopleInAccount,
+  addAccountPerson,
 } from "../store";
 import type { MemberStatus } from "../data/mock";
 import { FEATURES } from "../config";
@@ -29,7 +29,7 @@ const statusLabel: Record<MemberStatus, string> = {
   suspended: "Suspended",
 };
 
-function ShipyardStat({ value, label }: { value: number; label: string }) {
+function BrandStat({ value, label }: { value: number; label: string }) {
   return (
     <div>
       <div
@@ -44,38 +44,38 @@ function ShipyardStat({ value, label }: { value: number; label: string }) {
   );
 }
 
-export default function GroupDetail() {
+export default function AccountDetail() {
   useStore();
-  const { groupId = "" } = useParams();
+  const { accountId = "" } = useParams();
   const [tab, setTab] = useState("people");
   const [personOpen, setPersonOpen] = useState(false);
-  const [shipyardOpen, setShipyardOpen] = useState(false);
+  const [brandOpen, setBrandOpen] = useState(false);
   const navigate = useNavigate();
 
-  const group = groupById(groupId);
-  if (!group) return <Navigate to="/" replace />;
+  const account = accountById(accountId);
+  if (!account) return <Navigate to="/" replace />;
 
-  const groupShipyards = shipyardsInGroup(groupId);
-  const people = peopleInGroup(groupId);
-  const totalYachts = groupShipyards.reduce((n, s) => n + s.yachts, 0);
+  const accountBrands = brandsInAccount(accountId);
+  const people = peopleInAccount(accountId);
+  const totalYachts = accountBrands.reduce((n, s) => n + s.yachts, 0);
 
   return (
     <>
       <PageHeader
         crumbs={[
           { label: "Access management", to: "/" },
-          { label: `${group.name} Account` },
+          { label: `${account.name} Account` },
         ]}
-        title={group.name}
+        title={account.name}
         badge={<Badge tone="brand">Account</Badge>}
-        subtitle={`${groupShipyards.length} shipyards · ${totalYachts} yachts`}
+        subtitle={`${accountBrands.length} brands · ${totalYachts} yachts`}
       />
 
       <div className="mb-5">
         <Tabs
           tabs={[
             { id: "people", label: "People" },
-            { id: "shipyards", label: "Shipyards" },
+            { id: "brands", label: "Brands" },
           ]}
           active={tab}
           onChange={setTab}
@@ -150,22 +150,22 @@ export default function GroupDetail() {
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
-            <SearchInput placeholder="Search shipyards" />
-            {FEATURES.createShipyard && (
-              <Button onClick={() => setShipyardOpen(true)}>
+            <SearchInput placeholder="Search brands" />
+            {FEATURES.createBrand && (
+              <Button onClick={() => setBrandOpen(true)}>
                 <Plus className="size-4" />
-                Add shipyard
+                Add brand
               </Button>
             )}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupShipyards.map((s) => (
+            {accountBrands.map((s) => (
               <Card
                 key={s.id}
                 className="cursor-pointer p-5 transition-colors hover:bg-hover/30"
               >
                 <button
-                  onClick={() => navigate(`/shipyards/${s.id}`)}
+                  onClick={() => navigate(`/brands/${s.id}`)}
                   className="w-full text-left"
                 >
                   <div className="mb-4 flex items-center justify-between">
@@ -173,9 +173,9 @@ export default function GroupDetail() {
                     <ChevronRight className="size-4 text-muted" />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <ShipyardStat value={s.yachts} label="Yachts" />
-                    <ShipyardStat value={s.teams} label="Teams" />
-                    <ShipyardStat value={s.users} label="Users" />
+                    <BrandStat value={s.yachts} label="Yachts" />
+                    <BrandStat value={s.teams} label="Teams" />
+                    <BrandStat value={s.users} label="Users" />
                   </div>
                 </button>
               </Card>
@@ -188,26 +188,26 @@ export default function GroupDetail() {
         open={personOpen}
         onClose={() => setPersonOpen(false)}
         assignLabel="Assign to"
-        assignValue={`${group.name} · all brands`}
+        assignValue={`${account.name} · all brands`}
         roleOptions={[
           { value: "admin", label: "Account admin" },
           { value: "manager", label: "Manager" },
           { value: "viewer", label: "Viewer" },
         ]}
         onCreate={(r) =>
-          addGroupPerson(groupId, {
+          addAccountPerson(accountId, {
             name: fullName(r),
             allBrands: true,
-            brands: `All ${groupShipyards.length} brands`,
+            brands: `All ${accountBrands.length} brands`,
             status: "invited",
           })
         }
       />
 
-      <CreateShipyardDrawer
-        open={shipyardOpen}
-        groupId={groupId}
-        onClose={() => setShipyardOpen(false)}
+      <CreateBrandDrawer
+        open={brandOpen}
+        accountId={accountId}
+        onClose={() => setBrandOpen(false)}
       />
     </>
   );

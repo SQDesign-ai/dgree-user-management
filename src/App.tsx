@@ -3,8 +3,8 @@ import Layout from "./components/Layout";
 import FirstLogin from "./pages/FirstLogin";
 import AccessManagement from "./pages/AccessManagement";
 import FleetPage from "./pages/FleetPage";
-import GroupDetail from "./pages/GroupDetail";
-import ShipyardDetail from "./pages/ShipyardDetail";
+import AccountDetail from "./pages/AccountDetail";
+import BrandDetail from "./pages/BrandDetail";
 import TeamDetail from "./pages/TeamDetail";
 import YachtDetail from "./pages/YachtDetail";
 
@@ -27,14 +27,14 @@ export default function App() {
       <Route element={<LayoutRoute />}>
         <Route path="/" element={<AccessManagement />} />
         <Route path="/fleet" element={<FleetPage />} />
-        <Route path="/groups/:groupId" element={<GroupDetail />} />
-        <Route path="/shipyards/:shipyardId" element={<ShipyardDetail />} />
+        <Route path="/accounts/:accountId" element={<AccountDetail />} />
+        <Route path="/brands/:brandId" element={<BrandDetail />} />
         <Route
-          path="/shipyards/:shipyardId/teams/:teamId"
+          path="/brands/:brandId/teams/:teamId"
           element={<TeamDetail />}
         />
         <Route
-          path="/shipyards/:shipyardId/yachts/:yachtId"
+          path="/brands/:brandId/yachts/:yachtId"
           element={<YachtDetail />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />

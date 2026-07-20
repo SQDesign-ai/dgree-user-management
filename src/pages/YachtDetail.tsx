@@ -20,8 +20,8 @@ import {
 } from "../components/drawers";
 import {
   useStore,
-  shipyardById,
-  groupById,
+  brandById,
+  accountById,
   yachtById,
   ownerTeamOfYacht,
   teamsForYacht,
@@ -67,7 +67,7 @@ const ROLE_FILTERS: { id: "all" | YachtRole; label: string }[] = [
   { id: "guest", label: "Guest" },
 ];
 
-/** Shipyard access runs for a year from the hand-over to the shipyard. */
+/** Brand access runs for a year from the hand-over to the brand. */
 function oneYearAfter(iso?: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -392,10 +392,10 @@ function Field({
 }
 
 function YachtDetailsCard({
-  shipyardId,
+  brandId,
   yacht,
 }: {
-  shipyardId: string;
+  brandId: string;
   yacht: Yacht;
 }) {
   const [editing, setEditing] = useState(false);
@@ -411,7 +411,7 @@ function YachtDetailsCard({
   }
 
   function save() {
-    setYachtDetails(shipyardId, yacht.id, { assetUuid: uuid, mmsi, imo });
+    setYachtDetails(brandId, yacht.id, { assetUuid: uuid, mmsi, imo });
     setEditing(false);
   }
 
@@ -501,17 +501,17 @@ function YachtDetailsCard({
 
 export default function YachtDetail() {
   useStore();
-  const { shipyardId = "", yachtId = "" } = useParams();
+  const { brandId = "", yachtId = "" } = useParams();
   const [personOpen, setPersonOpen] = useState(false);
   const [teamsOpen, setTeamsOpen] = useState(false);
   const [member, setMember] = useState<OwnerTeamMember | null>(null);
 
-  const shipyard = shipyardById(shipyardId);
-  const yacht = yachtById(shipyardId, yachtId);
-  if (!shipyard || !yacht) return <Navigate to="/" replace />;
+  const brand = brandById(brandId);
+  const yacht = yachtById(brandId, yachtId);
+  if (!brand || !yacht) return <Navigate to="/" replace />;
 
-  const group = groupById(shipyard.groupId);
-  const accessTeams = teamsForYacht(shipyardId, yachtId);
+  const account = accountById(brand.accountId);
+  const accessTeams = teamsForYacht(brandId, yachtId);
   const stage = yachtStage(yacht);
   const idx = STAGE_ORDER.indexOf(stage);
   const next = STAGE_ORDER[idx + 1] as YachtStage | undefined;
@@ -519,9 +519,9 @@ export default function YachtDetail() {
   const nextStep =
     next === "pre_delivery"
       ? {
-          label: "Delivery to shipyard",
-          hint: "The shipyard teams that get access will appear here.",
-          action: "Deliver to shipyard",
+          label: "Delivery to brand",
+          hint: "The brand teams that get access will appear here.",
+          action: "Deliver to brand",
         }
       : next === "delivered"
       ? {
@@ -540,7 +540,7 @@ export default function YachtDetail() {
           <span className="flex flex-wrap items-center gap-2.5">
             <StageBadge stage={stage} />
             <span className="text-xs text-ink-4">
-              {group?.name ?? "—"} account · {shipyard.name}
+              {account?.name ?? "—"} account · {brand.name}
             </span>
           </span>
         }
@@ -553,7 +553,7 @@ export default function YachtDetail() {
               <NextStepCard
                 hint={nextStep.hint}
                 actionLabel={nextStep.action}
-                onAdvance={() => setYachtStage(shipyardId, yachtId, next)}
+                onAdvance={() => setYachtStage(brandId, yachtId, next)}
               />
             </Moment>
           )}
@@ -566,7 +566,7 @@ export default function YachtDetail() {
                 <RevertButton
                   to="pre-delivery"
                   onClick={() =>
-                    setYachtStage(shipyardId, yachtId, "pre_delivery")
+                    setYachtStage(brandId, yachtId, "pre_delivery")
                   }
                 />
               }
@@ -581,25 +581,25 @@ export default function YachtDetail() {
 
           {idx >= 1 && (
             <Moment
-              label="Yacht delivered to shipyard"
-              date={formatDay(yacht.shipyardDeliveryDate)}
+              label="Yacht delivered to brand"
+              date={formatDay(yacht.brandDeliveryDate)}
               action={
                 stage === "pre_delivery" ? (
                   <RevertButton
                     to="production"
                     onClick={() =>
-                      setYachtStage(shipyardId, yachtId, "production")
+                      setYachtStage(brandId, yachtId, "production")
                     }
                   />
                 ) : undefined
               }
             >
               <TeamCard
-                title={`Shipyard · ${shipyard.name}`}
+                title={`Brand · ${brand.name}`}
                 chips={accessTeams.map((t) => t.name)}
                 note={`Access ends ${oneYearAfter(
-                  yacht.shipyardDeliveryDate
-                )} — one year after shipyard delivery.`}
+                  yacht.brandDeliveryDate
+                )} — one year after brand delivery.`}
                 onAssign={() => setTeamsOpen(true)}
               />
             </Moment>
@@ -619,7 +619,7 @@ export default function YachtDetail() {
           </Moment>
         </ol>
 
-        <YachtDetailsCard shipyardId={shipyardId} yacht={yacht} />
+        <YachtDetailsCard brandId={brandId} yacht={yacht} />
       </div>
 
       <CreateUserDrawer
@@ -653,8 +653,8 @@ export default function YachtDetail() {
       <AssignTeamsToYachtDrawer
         open={teamsOpen}
         onClose={() => setTeamsOpen(false)}
-        shipyardId={shipyardId}
-        shipyardName={shipyard.name}
+        brandId={brandId}
+        brandName={brand.name}
         yachtId={yachtId}
         yachtName={yachtLabel(yacht)}
       />
