@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Trash2, Search, UserPlus, Check, X } from "lucide-react";
+import { Trash2, Search, Check, X } from "lucide-react";
 import { Button, Avatar, Badge } from "./ui";
 import {
   Drawer,
@@ -948,64 +948,65 @@ function PeoplePicker({
         </p>
       </div>
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && canInvite) {
-              e.preventDefault();
-              invite();
-            }
-          }}
-          placeholder="Search people, or type an email to invite"
-          className="w-full rounded-lg border border-line bg-[#0e2149] py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
-        />
+      {/* Field + a real Invite button: the button is the affordance, so it's
+          obvious what a typed address will do before you commit to it. */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && canInvite) {
+                e.preventDefault();
+                invite();
+              }
+            }}
+            placeholder="Search people, or type an email to invite"
+            className="w-full rounded-lg border border-line bg-[#0e2149] py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
+          />
+        </div>
+        <button
+          // Not a submit: this button lives inside the drawer's form, and
+          // without this it would send the whole thing.
+          type="button"
+          onClick={invite}
+          disabled={!canInvite}
+          className="shrink-0 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-muted"
+        >
+          Invite
+        </button>
       </div>
 
-      {/* Queued invites — they don't exist yet, so they can't live in the list */}
-      {invites.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {invites.map((email) => (
-            <span
-              key={email}
-              className="inline-flex items-center gap-1.5 rounded-full bg-brand/15 py-1 pl-3 pr-1.5 text-xs text-[#afcbff]"
-            >
-              {email}
-              <button
-                type="button"
-                onClick={() => onRemoveInvite(email)}
-                aria-label={`Remove ${email}`}
-                className="rounded-full p-0.5 transition-colors hover:bg-white/10"
-              >
-                <X className="size-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-
       <div className="max-h-72 space-y-1.5 overflow-y-auto rounded-lg border border-line bg-[#0e2149]/40 p-1.5">
-        {canInvite && (
-          <button
-            type="button"
-            onClick={invite}
-            className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-white/[0.04]"
+        {/* Invited people join the list rather than sitting apart from it —
+            they're being added just as much as anyone ticked below. */}
+        {invites.map((email) => (
+          <div
+            key={email}
+            className="flex w-full items-center gap-3 rounded-md bg-brand/15 px-2.5 py-2"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand/15 text-brand">
-              <UserPlus className="size-4" />
+            <span className="flex size-4 shrink-0 items-center justify-center rounded border border-brand bg-brand text-white">
+              <Check className="size-3" strokeWidth={3} />
             </span>
+            <Avatar name={nameFromEmail(email)} size={28} />
             <span className="min-w-0 flex-1 leading-tight">
-              <span className="block text-sm font-medium text-white">
-                Invite {q}
+              <span className="block truncate text-sm text-white">
+                {nameFromEmail(email)}
               </span>
-              <span className="block text-xs text-muted">
-                Not in the directory — they&apos;ll get an invite email
-              </span>
+              <span className="block truncate text-xs text-muted">{email}</span>
             </span>
-          </button>
-        )}
+            <Badge tone="brand">Invite</Badge>
+            <button
+              type="button"
+              onClick={() => onRemoveInvite(email)}
+              aria-label={`Remove ${email}`}
+              className="rounded p-1 text-muted transition-colors hover:bg-white/10 hover:text-ink-3"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        ))}
 
         {matches.map((p) => {
           const on = selected.includes(p.id);
@@ -1037,10 +1038,10 @@ function PeoplePicker({
           );
         })}
 
-        {matches.length === 0 && !canInvite && (
+        {matches.length === 0 && invites.length === 0 && (
           <p className="px-2.5 py-6 text-center text-xs text-muted">
             {q
-              ? "No one matches. Type a full email address to invite them."
+              ? "No one matches. Finish typing an email address to invite them."
               : emptyText}
           </p>
         )}
