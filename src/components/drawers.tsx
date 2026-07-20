@@ -38,6 +38,7 @@ import {
   yachtLabel,
   type YachtRole,
   type OwnerTeamMember,
+  type Person,
 } from "../data/mock";
 
 // -------------------------------------------------------------------------
@@ -448,26 +449,29 @@ export function CreateTeamDrawer({
   const [shipyard, setShipyard] = useState(shipyardId);
   const [description, setDescription] = useState("");
   const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [invites, setInvites] = useState<string[]>([]);
 
   const activeShipyard = shipyard || shipyardId;
-  const candidates = candidatePeopleForShipyard(activeShipyard);
 
   function changeShipyard(id: string) {
     setShipyard(id);
     setMemberIds([]); // candidates differ per group — reset selection
   }
 
-  function toggleMember(id: string) {
-    setMemberIds((ids) =>
-      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
-    );
-  }
-
   function submit() {
-    addTeam(activeShipyard, { name, description, memberIds });
+    // The team has to exist before anyone can be invited into it.
+    const teamId = addTeam(activeShipyard, { name, description, memberIds });
+    invites.forEach((email) =>
+      addTeamMember(teamId, activeShipyard, {
+        name: nameFromEmail(email),
+        handle: email,
+        status: "invited",
+      })
+    );
     setName("");
     setDescription("");
     setMemberIds([]);
+    setInvites([]);
     onClose();
   }
 
@@ -499,23 +503,28 @@ export function CreateTeamDrawer({
         onChange={setDescription}
         placeholder="What this team does"
       />
-      <MultiSelectField
-        label="Add people"
-        avatar
-        options={candidates.map((p) => ({
-          value: p.id,
-          label: p.name,
-          sublabel: p.handle,
-          badge: p.kind === "sail-adv" ? "SailADV" : undefined,
-        }))}
-        selected={memberIds}
-        onToggle={toggleMember}
-        emptyText="No people available for this shipyard's group yet."
-      />
+      <div>
+        <div className="mb-1.5 text-xs font-semibold text-ink-3">Add people</div>
+        <PeoplePicker
+          candidates={candidatePeopleForShipyard(activeShipyard)}
+          selected={memberIds}
+          onToggle={(id) =>
+            setMemberIds((ids) =>
+              ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+            )
+          }
+          invites={invites}
+          onInvite={(email) => setInvites((v) => [...v, email])}
+          onRemoveInvite={(email) =>
+            setInvites((v) => v.filter((x) => x !== email))
+          }
+          emptyText="No people available for this shipyard's group yet."
+        />
+      </div>
       <Note>
-        Pick existing people from this group (or any SailADV member). The same
-        person can belong to several teams. You can also invite brand-new people
-        from the team page.
+        Pick existing people from this group (or any SailADV member), and invite
+        anyone who isn&apos;t there yet. The same person can belong to several
+        teams.
       </Note>
     </Drawer>
   );
@@ -814,32 +823,15 @@ export function AddTeamPeopleDrawer({
   teamId: string;
   teamName: string;
 }) {
-  const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [invites, setInvites] = useState<string[]>([]);
 
   // Reset every time the drawer is opened.
   useEffect(() => {
     if (!open) return;
-    setQuery("");
     setSelected([]);
     setInvites([]);
   }, [open]);
-
-  const candidates = candidatePeopleForShipyard(shipyardId, teamId);
-  const q = query.trim();
-  const lower = q.toLowerCase();
-  const matches = lower
-    ? candidates.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lower) ||
-          p.handle.toLowerCase().includes(lower)
-      )
-    : candidates;
-
-  // Only an address can be invited — that's what the invite is sent to.
-  const isEmail = /^\S+@\S+\.\S+$/.test(q);
-  const canInvite = isEmail && !invites.includes(q.toLowerCase());
 
   const n = selected.length;
   const m = invites.length;
@@ -851,16 +843,6 @@ export function AddTeamPeopleDrawer({
       : m
       ? `Invite ${m}`
       : "Add people";
-
-  function toggle(id: string) {
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-  }
-
-  function invite() {
-    if (!canInvite) return;
-    setInvites((v) => [...v, q.toLowerCase()]);
-    setQuery(""); // ready for the next one, so several can be queued up
-  }
 
   function submit() {
     selected.forEach((id) => addExistingTeamMember(teamId, shipyardId, id));
@@ -883,12 +865,80 @@ export function AddTeamPeopleDrawer({
       submitDisabled={!n && !m}
       onSubmit={submit}
     >
-      {/* One field for both jobs: it filters the directory, and when what you
-          typed is an address that nobody matches, it offers to invite it. */}
+      <PeoplePicker
+        candidates={candidatePeopleForShipyard(shipyardId, teamId)}
+        selected={selected}
+        onToggle={(id) =>
+          setSelected((s) =>
+            s.includes(id) ? s.filter((x) => x !== id) : [...s, id]
+          )
+        }
+        invites={invites}
+        onInvite={(email) => setInvites((v) => [...v, email])}
+        onRemoveInvite={(email) =>
+          setInvites((v) => v.filter((x) => x !== email))
+        }
+        emptyText="Everyone in this group is already on the team."
+      />
+    </Drawer>
+  );
+}
+
+/**
+ * Choose people for a team, whether or not they exist yet.
+ *
+ * One field does both jobs: it filters the directory as you type, and when what
+ * you typed is an address nobody matches, it offers to invite it. Queued
+ * invites are held as chips so several can be lined up before submitting.
+ *
+ * Selection and invites live with the caller — what happens on submit differs
+ * (an existing team links a person; a new one is created first) and only the
+ * search box is this component's own business.
+ */
+function PeoplePicker({
+  candidates,
+  selected,
+  onToggle,
+  invites,
+  onInvite,
+  onRemoveInvite,
+  emptyText,
+}: {
+  candidates: Person[];
+  selected: string[];
+  onToggle: (id: string) => void;
+  invites: string[];
+  onInvite: (email: string) => void;
+  onRemoveInvite: (email: string) => void;
+  emptyText: string;
+}) {
+  const [query, setQuery] = useState("");
+
+  const q = query.trim();
+  const lower = q.toLowerCase();
+  const matches = lower
+    ? candidates.filter(
+        (p) =>
+          p.name.toLowerCase().includes(lower) ||
+          p.handle.toLowerCase().includes(lower)
+      )
+    : candidates;
+
+  // Only an address can be invited — that's what the invite is sent to.
+  const isEmail = /^\S+@\S+\.\S+$/.test(q);
+  const canInvite = isEmail && !invites.includes(lower);
+
+  function invite() {
+    if (!canInvite) return;
+    onInvite(lower);
+    setQuery(""); // ready for the next one, so several can be queued up
+  }
+
+  return (
+    <div className="space-y-3">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
         <input
-          autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -902,8 +952,7 @@ export function AddTeamPeopleDrawer({
         />
       </div>
 
-      {/* Queued invites — these are people who don't exist yet, so they can't
-          live in the list below. */}
+      {/* Queued invites — they don't exist yet, so they can't live in the list */}
       {invites.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {invites.map((email) => (
@@ -913,9 +962,8 @@ export function AddTeamPeopleDrawer({
             >
               {email}
               <button
-                onClick={() =>
-                  setInvites((v) => v.filter((x) => x !== email))
-                }
+                type="button"
+                onClick={() => onRemoveInvite(email)}
                 aria-label={`Remove ${email}`}
                 className="rounded-full p-0.5 transition-colors hover:bg-white/10"
               >
@@ -953,7 +1001,7 @@ export function AddTeamPeopleDrawer({
             <button
               type="button"
               key={p.id}
-              onClick={() => toggle(p.id)}
+              onClick={() => onToggle(p.id)}
               className={`flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors ${
                 on ? "bg-brand/15" : "hover:bg-white/[0.04]"
               }`}
@@ -981,11 +1029,11 @@ export function AddTeamPeopleDrawer({
           <p className="px-2.5 py-6 text-center text-xs text-muted">
             {q
               ? "No one matches. Type a full email address to invite them."
-              : "Everyone in this group is already on the team."}
+              : emptyText}
           </p>
         )}
       </div>
-    </Drawer>
+    </div>
   );
 }
 
