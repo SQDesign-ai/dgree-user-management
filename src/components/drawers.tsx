@@ -920,16 +920,13 @@ function PeoplePicker({
   const isEmail = /^\S+@\S+\.\S+$/.test(q);
   const canInvite = isEmail && !invites.includes(lower);
 
-  // A full address is an invite, not a search, so it shouldn't empty the list:
-  // you may want to tick someone in the same breath as inviting a newcomer.
-  const matches =
-    lower && !isEmail
-      ? candidates.filter(
-          (p) =>
-            p.name.toLowerCase().includes(lower) ||
-            p.handle.toLowerCase().includes(lower)
-        )
-      : candidates;
+  const matches = lower
+    ? candidates.filter(
+        (p) =>
+          p.name.toLowerCase().includes(lower) ||
+          p.handle.toLowerCase().includes(lower)
+      )
+    : candidates;
 
   function invite() {
     if (!canInvite) return;
@@ -948,34 +945,36 @@ function PeoplePicker({
         </p>
       </div>
 
-      {/* Field + a real Invite button: the button is the affordance, so it's
-          obvious what a typed address will do before you commit to it. */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && canInvite) {
-                e.preventDefault();
-                invite();
-              }
-            }}
-            placeholder="Search people, or type an email to invite"
-            className="w-full rounded-lg border border-line bg-[#0e2149] py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20"
-          />
-        </div>
-        <button
-          // Not a submit: this button lives inside the drawer's form, and
-          // without this it would send the whole thing.
-          type="button"
-          onClick={invite}
-          disabled={!canInvite}
-          className="shrink-0 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-muted"
-        >
-          Invite
-        </button>
+      {/* The Invite button sits inside the field, so it reads as what to do
+          with what you just typed rather than a separate control. It only
+          appears once that's a complete address — nothing to press before. */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && canInvite) {
+              e.preventDefault();
+              invite();
+            }
+          }}
+          placeholder="Search people, or type an email to invite"
+          className={`w-full rounded-lg border border-line bg-[#0e2149] py-2.5 pl-9 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20 ${
+            canInvite ? "pr-[5.5rem]" : "pr-3"
+          }`}
+        />
+        {canInvite && (
+          <button
+            // Not a submit: it lives inside the drawer's form, and without this
+            // it would send the whole thing.
+            type="button"
+            onClick={invite}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-hover"
+          >
+            Invite
+          </button>
+        )}
       </div>
 
       <div className="max-h-72 space-y-1.5 overflow-y-auto rounded-lg border border-line bg-[#0e2149]/40 p-1.5">
@@ -1038,11 +1037,13 @@ function PeoplePicker({
           );
         })}
 
-        {matches.length === 0 && invites.length === 0 && (
-          <p className="px-2.5 py-6 text-center text-xs text-muted">
-            {q
-              ? "No one matches. Finish typing an email address to invite them."
-              : emptyText}
+        {matches.length === 0 && (
+          <p className="px-2.5 py-6 text-center text-xs leading-relaxed text-muted">
+            {!q
+              ? emptyText
+              : canInvite
+              ? `Nobody here matches — use Invite to add ${q}.`
+              : `No one matches “${q}”. Type their full email address to invite them.`}
           </p>
         )}
       </div>
