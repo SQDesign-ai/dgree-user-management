@@ -10,7 +10,6 @@ import {
   type OwnerTeamMember,
   type YachtRole,
 } from "../data/mock";
-
 import {
   ACTIVATION_YACHT_ID as YACHT_ID,
   ACTIVATION_YACHT_NAME as YACHT_NAME,
@@ -23,12 +22,15 @@ const roleLabel: Record<YachtRole, string> = {
   guest: "Guest",
 };
 
-type Step = "password" | "documents" | "attorneys";
+type Step = "email" | "password" | "documents" | "poa" | "login";
 
 /**
- * What this person has to do before they're in — derived from their record, not
- * a flag, so the flow is a consequence of the data rather than a separate
- * source of truth.
+ * The flow, as drawn: the invitation email leads to a password, then the two
+ * documents, then — only for an owner — delegating power of attorney. Everyone
+ * ends up at the sign-in screen.
+ *
+ * Which steps a person meets is derived from their record rather than a flag,
+ * so someone who has already accepted the current documents simply signs in.
  */
 function stepsFor(m: OwnerTeamMember): Step[] {
   const neverSignedIn = !m.tcVersion && !m.privacyVersion;
@@ -37,11 +39,21 @@ function stepsFor(m: OwnerTeamMember): Step[] {
     m.privacyVersion !== CURRENT_PRIVACY_VERSION;
 
   const steps: Step[] = [];
-  if (neverSignedIn) steps.push("password");
+  // An invitation is only sent once, so a returning person starts further in.
+  if (neverSignedIn) steps.push("email", "password");
   if (outOfDate) steps.push("documents");
-  // Only an owner names the people who may act for them.
-  if (m.role === "owner") steps.push("attorneys");
+  // Delegation is part of activating, not something re-asked at every sign-in.
+  if (m.role === "owner" && outOfDate) steps.push("poa");
+  steps.push("login");
   return steps;
+}
+
+/**
+ * People are held as handles elsewhere, but an activation email has to be
+ * addressed to something that reads like an address.
+ */
+function emailOf(m: OwnerTeamMember): string {
+  return `${m.handle.replace(/^@/, "").replace(/_/g, ".")}@example.com`;
 }
 
 /** One line describing why this person sees what they see. */
@@ -56,9 +68,20 @@ function stateOf(m: OwnerTeamMember): { label: string; tone: "new" | "stale" | "
   return { label: "Up to date", tone: "ok" };
 }
 
+/** What the person is about to walk through, in words. */
+function summarise(steps: Step[]): string {
+  const named = steps.filter((s) => s !== "login" && s !== "email");
+  if (named.length === 0) return "Sign in only";
+  return named
+    .map((s) =>
+      s === "password" ? "Password" : s === "documents" ? "Documents" : "PoA"
+    )
+    .join(" · ");
+}
+
 // -------------------------------------------------------------------------
 
-export default function FirstLogin() {
+export default function Activation() {
   useStore();
   const team = ownerTeamOfYacht(YACHT_ID);
 
@@ -69,31 +92,26 @@ export default function FirstLogin() {
   const [acceptTc, setAcceptTc] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [attorneyIds, setAttorneyIds] = useState<string[]>([]);
-  const [finished, setFinished] = useState(false);
-  // Captured when the flow starts: completing it updates the person, so asking
-  // "did they have steps?" afterwards would always answer no.
-  const [hadSteps, setHadSteps] = useState(false);
+  // Frozen when the flow starts: completing it changes the person's record, so
+  // recomputing would shorten the flow underneath whoever is walking it.
+  const [steps, setSteps] = useState<Step[]>([]);
 
   const person = team.find((m) => m.id === personId) ?? null;
-  const steps = person ? stepsFor(person) : [];
   const step = steps[stepIndex];
 
   function start(m: OwnerTeamMember) {
     setPersonId(m.id);
+    setSteps(stepsFor(m));
     setStepIndex(0);
     setPassword("");
     setConfirm("");
     setAcceptTc(false);
     setAcceptPrivacy(false);
     setAttorneyIds(team.filter((t) => t.poa).map((t) => t.id));
-    const todo = stepsFor(m);
-    setHadSteps(todo.length > 0);
-    setFinished(todo.length === 0);
   }
 
   function reset() {
     setPersonId(null);
-    setFinished(false);
     setStepIndex(0);
   }
 
@@ -105,26 +123,16 @@ export default function FirstLogin() {
         privacyVersion: CURRENT_PRIVACY_VERSION,
       });
     }
-    if (step === "attorneys") {
-      setPoaHolders(YACHT_ID, attorneyIds);
-    }
-    if (stepIndex + 1 >= steps.length) setFinished(true);
-    else setStepIndex((i) => i + 1);
+    if (step === "poa") setPoaHolders(YACHT_ID, attorneyIds);
+    setStepIndex((i) => Math.min(i + 1, steps.length - 1));
   }
 
-  const canContinue =
-    step === "password"
-      ? password.length >= 8 && password === confirm
-      : step === "documents"
-      ? acceptTc && acceptPrivacy
-      : true;
-
-  // ---- Who's signing in? (a prototype affordance, not part of the product)
+  // ---- Who's activating? (a prototype affordance, not part of the product)
   if (!person) {
     return (
       <Shell>
         <p className="mb-1 text-sm font-semibold text-white">
-          Who is signing in?
+          Who is activating?
         </p>
         <p className="mb-5 text-xs text-muted">
           Each person on {YACHT_NAME} meets a different flow, depending on what
@@ -133,7 +141,6 @@ export default function FirstLogin() {
         <div className="flex flex-col gap-2">
           {team.map((m) => {
             const s = stateOf(m);
-            const n = stepsFor(m).length;
             return (
               <button
                 key={m.id}
@@ -143,7 +150,10 @@ export default function FirstLogin() {
                 <Avatar name={m.name} />
                 <span className="min-w-0 flex-1 leading-tight">
                   <span className="block text-sm font-medium text-white">
-                    {m.name}
+                    {m.name}{" "}
+                    <span className="text-xs font-normal text-ink-4">
+                      · {roleLabel[m.role]}
+                    </span>
                   </span>
                   <span className="block text-xs text-muted">{s.label}</span>
                 </span>
@@ -152,7 +162,7 @@ export default function FirstLogin() {
                     s.tone === "new" ? "orange" : s.tone === "stale" ? "yellow" : "mist"
                   }
                 >
-                  {n === 0 ? "Straight in" : `${n} step${n > 1 ? "s" : ""}`}
+                  {summarise(stepsFor(m))}
                 </Tag>
               </button>
             );
@@ -162,25 +172,65 @@ export default function FirstLogin() {
     );
   }
 
-  // ---- Nothing to do / finished
-  if (finished) {
+  const firstName = person.name.split(" ")[0];
+
+  // ---- 0. The invitation email
+  if (step === "email") {
     return (
-      <Shell>
-        <div className="text-center">
-          <Avatar name={person.name} size={44} />
-          <p className="mt-3 text-sm font-semibold text-white">
-            {hadSteps
-              ? `You're all set, ${person.name.split(" ")[0]}`
-              : `Welcome back, ${person.name.split(" ")[0]}`}
+      <Shell onExit={reset}>
+        <Chrome label="Inbox" />
+        <div className="border-b border-line pb-3">
+          <p className="text-sm font-semibold text-white">
+            You&apos;ve been invited to {YACHT_NAME}
           </p>
-          <p className="mt-1 text-xs leading-relaxed text-muted">
-            {hadSteps
-              ? `Signed in to ${YACHT_NAME} as ${roleLabel[person.role]}.`
-              : "Nothing to accept — everything is already up to date."}
+          <p className="mt-1 text-xs text-muted">
+            D.gree Yachting &lt;no-reply@dgree.com&gt; · to {emailOf(person)}
           </p>
         </div>
-        <div className="mt-6 flex justify-center">
-          <Button variant="secondary" size="sm" onClick={reset}>
+        <div className="py-4 text-sm leading-relaxed text-ink-2">
+          <p>Hi {firstName},</p>
+          <p className="mt-3">
+            You have been added to {YACHT_NAME} as {roleLabel[person.role]}.
+            Activate your account to see the yacht&apos;s data.
+          </p>
+          <p className="mt-3 text-xs text-muted">
+            This link expires in 7 days.
+          </p>
+        </div>
+        <Button onClick={next}>Activate your account</Button>
+      </Shell>
+    );
+  }
+
+  // ---- The sign-in screen everyone lands on (already built in the product)
+  if (step === "login") {
+    const activated = steps.length > 1;
+    return (
+      <Shell onExit={reset}>
+        {activated && (
+          <div className="mb-4 rounded-lg border border-success/40 bg-success/10 px-3 py-2.5">
+            <p className="text-xs leading-relaxed text-ink-2">
+              {steps.includes("password")
+                ? "Your account is active."
+                : "Thanks — that's recorded."}{" "}
+              Sign in to continue.
+            </p>
+          </div>
+        )}
+        <p className="mb-4 text-sm font-semibold text-white">Sign in</p>
+        <div className="flex flex-col gap-3">
+          <TextField label="Email" value={emailOf(person)} onChange={() => {}} />
+          <TextField
+            label="Password"
+            type="password"
+            value=""
+            onChange={() => {}}
+            placeholder="Your password"
+          />
+        </div>
+        <div className="mt-5 flex items-center justify-between">
+          <span className="text-xs text-muted">Existing screen</span>
+          <Button size="sm" onClick={reset}>
             Try another person
           </Button>
         </div>
@@ -188,9 +238,19 @@ export default function FirstLogin() {
     );
   }
 
-  // ---- The flow
+  const canContinue =
+    step === "password"
+      ? password.length >= 8 && password === confirm
+      : step === "documents"
+      ? acceptTc && acceptPrivacy
+      : true;
+
+  // Position within the steps that are actual screens in the flow.
+  const numbered = steps.filter((s) => s !== "email" && s !== "login");
+  const position = numbered.indexOf(step) + 1;
+
   return (
-    <Shell>
+    <Shell onExit={reset}>
       <div className="mb-5 flex items-center gap-3">
         <Avatar name={person.name} />
         <span className="min-w-0 flex-1 leading-tight">
@@ -202,7 +262,7 @@ export default function FirstLogin() {
           </span>
         </span>
         <span className="text-xs text-muted">
-          Step {stepIndex + 1} of {steps.length}
+          Step {position} of {numbered.length}
         </span>
       </div>
 
@@ -210,8 +270,7 @@ export default function FirstLogin() {
         <div className="flex flex-col gap-3">
           <p className="text-sm font-semibold text-white">Set your password</p>
           <p className="text-xs leading-relaxed text-muted">
-            You were invited to {YACHT_NAME}. Choose a password to finish
-            setting up your account.
+            Choose a password to finish setting up your account.
           </p>
           <TextField
             label="Password"
@@ -258,18 +317,16 @@ export default function FirstLogin() {
         </div>
       )}
 
-      {step === "attorneys" && (
+      {step === "poa" && (
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold text-white">
-            Power of attorney
-          </p>
+          <p className="text-sm font-semibold text-white">Power of attorney</p>
           <p className="text-xs leading-relaxed text-muted">
             As the owner, you can name people to authorise 3rd-party data
             sharing on your behalf. Anyone on your team can hold it, and you can
             change this later in your settings.
           </p>
           <MultiSelectField
-            label="Held by"
+            label="Delegate to"
             options={team
               .filter((m) => m.role !== "owner")
               .map((m) => ({
@@ -303,7 +360,7 @@ export default function FirstLogin() {
           Cancel
         </Button>
         <Button size="sm" onClick={next} disabled={!canContinue}>
-          {stepIndex + 1 >= steps.length ? "Finish" : "Continue"}
+          {step === "poa" ? "Delegate" : "Continue"}
         </Button>
       </div>
     </Shell>
@@ -312,7 +369,13 @@ export default function FirstLogin() {
 
 // -------------------------------------------------------------------------
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({
+  children,
+  onExit,
+}: {
+  children: React.ReactNode;
+  onExit?: () => void;
+}) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-page px-6 py-16">
       <div className="w-full max-w-md">
@@ -324,15 +387,37 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <Card className="p-6">{children}</Card>
         {/* The flow has no navigation of its own, so this is the way out. */}
-        <div className="mt-5 text-center">
-          <Link
-            to="/"
-            className="text-xs text-muted transition-colors hover:text-white"
-          >
+        <div className="mt-5 flex items-center justify-center gap-3 text-xs text-muted">
+          {onExit && (
+            <>
+              <button
+                onClick={onExit}
+                className="transition-colors hover:text-white"
+              >
+                Restart
+              </button>
+              <span className="text-ink-4">·</span>
+            </>
+          )}
+          <Link to="/" className="transition-colors hover:text-white">
             ← Prototype home
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Frames the card as something arriving from outside the product. */
+function Chrome({ label }: { label: string }) {
+  return (
+    <div className="-mx-6 -mt-6 mb-4 flex items-center gap-2 rounded-t-xl border-b border-line bg-nav px-4 py-2">
+      <span className="flex gap-1.5">
+        <span className="size-2 rounded-full bg-danger/70" />
+        <span className="size-2 rounded-full bg-warn/70" />
+        <span className="size-2 rounded-full bg-success/70" />
+      </span>
+      <span className="text-[11px] font-medium text-ink-3">{label}</span>
     </div>
   );
 }

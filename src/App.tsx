@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import Layout from "./components/Layout";
 import Start from "./pages/Start";
-import FirstLogin from "./pages/FirstLogin";
+import Activation from "./pages/Activation";
 import AccessManagement from "./pages/AccessManagement";
 import FleetPage from "./pages/FleetPage";
 import AccountDetail from "./pages/AccountDetail";
@@ -26,7 +26,7 @@ export default function App() {
 
       {/* Outside the layout, and deliberately not a gate: the prototype stays
           open, and this plays the sign-in flow for whichever person you pick. */}
-      <Route path="/activation" element={<FirstLogin />} />
+      <Route path="/activation" element={<Activation />} />
       <Route path="/first-login" element={<Navigate to="/activation" replace />} />
 
       <Route element={<LayoutRoute />}>
