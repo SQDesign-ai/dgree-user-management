@@ -26,8 +26,8 @@ export default function App() {
 
       {/* Outside the layout, and deliberately not a gate: the prototype stays
           open, and this plays the sign-in flow for whichever person you pick. */}
-      <Route path="/activation" element={<Activation />} />
-      <Route path="/first-login" element={<Navigate to="/activation" replace />} />
+      <Route path="/activation/:role" element={<Activation />} />
+      
 
       <Route element={<LayoutRoute />}>
         <Route path="/access" element={<AccessManagement />} />

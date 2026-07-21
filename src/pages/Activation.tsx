@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { Logo, Button, Tag } from "@sqdesign-ai/dgree-ds-react";
 import { Card, Avatar } from "../components/ui";
 import { MultiSelectField, TextField } from "../components/Drawer";
@@ -29,23 +29,17 @@ type Step = "email" | "password" | "documents" | "poa" | "login";
  * documents, then — only for an owner — delegating power of attorney. Everyone
  * ends up at the sign-in screen.
  *
- * Which steps a person meets is derived from their record rather than a flag,
- * so someone who has already accepted the current documents simply signs in.
+ * Activation is the same for everyone bar that one branch, so the role is all
+ * it takes to know the path.
  */
-function stepsFor(m: OwnerTeamMember): Step[] {
-  const neverSignedIn = !m.tcVersion && !m.privacyVersion;
-  const outOfDate =
-    m.tcVersion !== CURRENT_TC_VERSION ||
-    m.privacyVersion !== CURRENT_PRIVACY_VERSION;
-
-  const steps: Step[] = [];
-  // An invitation is only sent once, so a returning person starts further in.
-  if (neverSignedIn) steps.push("email", "password");
-  if (outOfDate) steps.push("documents");
-  // Delegation is part of activating, not something re-asked at every sign-in.
-  if (m.role === "owner" && outOfDate) steps.push("poa");
-  steps.push("login");
-  return steps;
+function stepsFor(role: YachtRole): Step[] {
+  return [
+    "email",
+    "password",
+    "documents",
+    ...(role === "owner" ? (["poa"] as Step[]) : []),
+    "login",
+  ];
 }
 
 /**
@@ -56,52 +50,30 @@ function emailOf(m: OwnerTeamMember): string {
   return `${m.handle.replace(/^@/, "").replace(/_/g, ".")}@example.com`;
 }
 
-/** One line describing why this person sees what they see. */
-function stateOf(m: OwnerTeamMember): { label: string; tone: "new" | "stale" | "ok" } {
-  if (!m.tcVersion && !m.privacyVersion)
-    return { label: "Invited · never signed in", tone: "new" };
-  if (
-    m.tcVersion !== CURRENT_TC_VERSION ||
-    m.privacyVersion !== CURRENT_PRIVACY_VERSION
-  )
-    return { label: `Accepted T&C ${m.tcVersion} · now ${CURRENT_TC_VERSION}`, tone: "stale" };
-  return { label: "Up to date", tone: "ok" };
-}
-
-/** What the person is about to walk through, in words. */
-function summarise(steps: Step[]): string {
-  const named = steps.filter((s) => s !== "login" && s !== "email");
-  if (named.length === 0) return "Sign in only";
-  return named
-    .map((s) =>
-      s === "password" ? "Password" : s === "documents" ? "Documents" : "PoA"
-    )
-    .join(" · ");
-}
-
 // -------------------------------------------------------------------------
 
 export default function Activation() {
   useStore();
+  const { role } = useParams();
+  const navigate = useNavigate();
   const team = ownerTeamOfYacht(YACHT_ID);
+  // The role picks who you activate as: a real member of the seeded team, so
+  // the delegation and consent it records land on someone the admin can see.
+  const person = team.find((m) => m.role === role) ?? null;
 
-  const [personId, setPersonId] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [acceptTc, setAcceptTc] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
-  const [attorneyIds, setAttorneyIds] = useState<string[]>([]);
-  // Frozen when the flow starts: completing it changes the person's record, so
-  // recomputing would shorten the flow underneath whoever is walking it.
-  const [steps, setSteps] = useState<Step[]>([]);
-
-  const person = team.find((m) => m.id === personId) ?? null;
+  const [attorneyIds, setAttorneyIds] = useState<string[]>(() =>
+    team.filter((t) => t.poa).map((t) => t.id)
+  );
+  const steps = stepsFor((role ?? "crew") as YachtRole);
   const step = steps[stepIndex];
 
-  function start(m: OwnerTeamMember) {
-    setPersonId(m.id);
-    setSteps(stepsFor(m));
+  /** Replay from the top. */
+  function restart() {
     setStepIndex(0);
     setPassword("");
     setConfirm("");
@@ -110,10 +82,8 @@ export default function Activation() {
     setAttorneyIds(team.filter((t) => t.poa).map((t) => t.id));
   }
 
-  function reset() {
-    setPersonId(null);
-    setStepIndex(0);
-  }
+  // The role you activate as is chosen on the home page.
+  if (!person) return <Navigate to="/" replace />;
 
   function next() {
     if (!person) return;
@@ -127,57 +97,12 @@ export default function Activation() {
     setStepIndex((i) => Math.min(i + 1, steps.length - 1));
   }
 
-  // ---- Who's activating? (a prototype affordance, not part of the product)
-  if (!person) {
-    return (
-      <Shell>
-        <p className="mb-1 text-sm font-semibold text-white">
-          Who is activating?
-        </p>
-        <p className="mb-5 text-xs text-muted">
-          Each person on {YACHT_NAME} meets a different flow, depending on what
-          they have already accepted.
-        </p>
-        <div className="flex flex-col gap-2">
-          {team.map((m) => {
-            const s = stateOf(m);
-            return (
-              <button
-                key={m.id}
-                onClick={() => start(m)}
-                className="flex items-center gap-3 rounded-lg border border-line px-3 py-2.5 text-left transition-colors hover:bg-hover/40"
-              >
-                <Avatar name={m.name} />
-                <span className="min-w-0 flex-1 leading-tight">
-                  <span className="block text-sm font-medium text-white">
-                    {m.name}{" "}
-                    <span className="text-xs font-normal text-ink-4">
-                      · {roleLabel[m.role]}
-                    </span>
-                  </span>
-                  <span className="block text-xs text-muted">{s.label}</span>
-                </span>
-                <Tag
-                  color={
-                    s.tone === "new" ? "orange" : s.tone === "stale" ? "yellow" : "mist"
-                  }
-                >
-                  {summarise(stepsFor(m))}
-                </Tag>
-              </button>
-            );
-          })}
-        </div>
-      </Shell>
-    );
-  }
-
   const firstName = person.name.split(" ")[0];
 
   // ---- 0. The invitation email
   if (step === "email") {
     return (
-      <Shell onExit={reset}>
+      <Shell onExit={restart}>
         <Chrome label="Inbox" />
         <div className="border-b border-line pb-3">
           <p className="text-sm font-semibold text-white">
@@ -204,19 +129,13 @@ export default function Activation() {
 
   // ---- The sign-in screen everyone lands on (already built in the product)
   if (step === "login") {
-    const activated = steps.length > 1;
     return (
-      <Shell onExit={reset}>
-        {activated && (
-          <div className="mb-4 rounded-lg border border-success/40 bg-success/10 px-3 py-2.5">
-            <p className="text-xs leading-relaxed text-ink-2">
-              {steps.includes("password")
-                ? "Your account is active."
-                : "Thanks — that's recorded."}{" "}
-              Sign in to continue.
-            </p>
-          </div>
-        )}
+      <Shell onExit={restart}>
+        <div className="mb-4 rounded-lg border border-success/40 bg-success/10 px-3 py-2.5">
+          <p className="text-xs leading-relaxed text-ink-2">
+            Your account is active. Sign in to continue.
+          </p>
+        </div>
         <p className="mb-4 text-sm font-semibold text-white">Sign in</p>
         <div className="flex flex-col gap-3">
           <TextField label="Email" value={emailOf(person)} onChange={() => {}} />
@@ -229,10 +148,15 @@ export default function Activation() {
           />
         </div>
         <div className="mt-5 flex items-center justify-between">
+          {/* This screen already exists in the product; the flow only has to
+              hand over to it. */}
           <span className="text-xs text-muted">Existing screen</span>
-          <Button size="sm" onClick={reset}>
-            Try another person
-          </Button>
+          <Link
+            to="/"
+            className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-hover"
+          >
+            Try another role
+          </Link>
         </div>
       </Shell>
     );
@@ -250,7 +174,7 @@ export default function Activation() {
   const position = numbered.indexOf(step) + 1;
 
   return (
-    <Shell onExit={reset}>
+    <Shell onExit={restart}>
       <div className="mb-5 flex items-center gap-3">
         <Avatar name={person.name} />
         <span className="min-w-0 flex-1 leading-tight">
@@ -294,13 +218,10 @@ export default function Activation() {
 
       {step === "documents" && (
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold text-white">
-            {person.tcVersion ? "We've updated our terms" : "Terms and privacy"}
-          </p>
+          <p className="text-sm font-semibold text-white">Terms and privacy</p>
           <p className="text-xs leading-relaxed text-muted">
-            {person.tcVersion
-              ? `You accepted T&C ${person.tcVersion}. It has changed since, so please read and accept the current version.`
-              : "Please read and accept these to continue. We record which version you accepted."}
+            Please read and accept these to continue. We record which version
+            you accepted.
           </p>
           <DocRow
             label="Terms & Conditions"
@@ -356,7 +277,7 @@ export default function Activation() {
       )}
 
       <div className="mt-6 flex items-center justify-between">
-        <Button variant="secondary" size="sm" onClick={reset}>
+        <Button variant="secondary" size="sm" onClick={() => navigate("/")}>
           Cancel
         </Button>
         <Button size="sm" onClick={next} disabled={!canContinue}>
