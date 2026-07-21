@@ -508,7 +508,7 @@ export default function YachtDetail() {
 
   const brand = brandById(brandId);
   const yacht = yachtById(brandId, yachtId);
-  if (!brand || !yacht) return <Navigate to="/" replace />;
+  if (!brand || !yacht) return <Navigate to="/access" replace />;
 
   const account = accountById(brand.accountId);
   const accessTeams = teamsForYacht(brandId, yachtId);

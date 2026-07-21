@@ -13,6 +13,8 @@ import {
   Bell,
   ChevronRight,
   ShieldCheck,
+  UserCheck,
+  Home,
 } from "lucide-react";
 import { Logo as DsLogo } from "@sqdesign-ai/dgree-ds-react";
 import { Avatar } from "./ui";
@@ -80,7 +82,7 @@ function Sidebar() {
       </div>
 
       <Link
-        to="/"
+        to="/access"
         className="mb-2 flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-white"
       >
         <span className="flex items-center gap-2.5">
@@ -137,7 +139,7 @@ function UserMenu() {
             <div className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-nav-section">
               Pages
             </div>
-            <Link to="/" onClick={close} className={item}>
+            <Link to="/access" onClick={close} className={item}>
               <ShieldCheck className="size-[18px]" />
               Access management
             </Link>
@@ -145,6 +147,18 @@ function UserMenu() {
               <Ship className="size-[18px]" />
               D.gree fleet
             </Link>
+            {/* The other surface of the prototype, and the way back to the
+                door between them. */}
+            <div className="mt-1.5 border-t border-line pt-1.5">
+              <Link to="/activation" onClick={close} className={item}>
+                <UserCheck className="size-[18px]" />
+                Account activation
+              </Link>
+              <Link to="/" onClick={close} className={item}>
+                <Home className="size-[18px]" />
+                Prototype home
+              </Link>
+            </div>
           </div>
         </>
       )}

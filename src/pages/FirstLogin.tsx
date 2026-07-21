@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Logo, Button, Tag } from "@sqdesign-ai/dgree-ds-react";
 import { Card, Avatar } from "../components/ui";
 import { MultiSelectField, TextField } from "../components/Drawer";
@@ -10,10 +11,10 @@ import {
   type YachtRole,
 } from "../data/mock";
 
-// The flow is mocked against one real team so every state below is a person who
-// actually exists in the data, not a hypothetical.
-const YACHT_ID = "sl50-171";
-const YACHT_NAME = "SL50-171 · CONTIGO";
+import {
+  ACTIVATION_YACHT_ID as YACHT_ID,
+  ACTIVATION_YACHT_NAME as YACHT_NAME,
+} from "../config";
 
 const roleLabel: Record<YachtRole, string> = {
   owner: "Owner",
@@ -313,7 +314,7 @@ export default function FirstLogin() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-full items-center justify-center bg-page px-6 py-16">
+    <div className="flex min-h-screen items-center justify-center bg-page px-6 py-16">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center">
           <Logo className="h-7 w-auto" />
@@ -322,6 +323,15 @@ function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <Card className="p-6">{children}</Card>
+        {/* The flow has no navigation of its own, so this is the way out. */}
+        <div className="mt-5 text-center">
+          <Link
+            to="/"
+            className="text-xs text-muted transition-colors hover:text-white"
+          >
+            ← Prototype home
+          </Link>
+        </div>
       </div>
     </div>
   );

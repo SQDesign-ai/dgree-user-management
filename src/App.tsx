@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import Layout from "./components/Layout";
+import Start from "./pages/Start";
 import FirstLogin from "./pages/FirstLogin";
 import AccessManagement from "./pages/AccessManagement";
 import FleetPage from "./pages/FleetPage";
@@ -17,15 +18,19 @@ function LayoutRoute() {
 }
 
 export default function App() {
-  // Single prototype, two-page layout: Access management + D.gree fleet.
+  // Two surfaces over one store: the admin (access management + fleet) and the
+  // activation flow the people it invites go through. `/` picks between them.
   return (
     <Routes>
+      <Route path="/" element={<Start />} />
+
       {/* Outside the layout, and deliberately not a gate: the prototype stays
           open, and this plays the sign-in flow for whichever person you pick. */}
-      <Route path="/first-login" element={<FirstLogin />} />
+      <Route path="/activation" element={<FirstLogin />} />
+      <Route path="/first-login" element={<Navigate to="/activation" replace />} />
 
       <Route element={<LayoutRoute />}>
-        <Route path="/" element={<AccessManagement />} />
+        <Route path="/access" element={<AccessManagement />} />
         <Route path="/fleet" element={<FleetPage />} />
         <Route path="/accounts/:accountId" element={<AccountDetail />} />
         <Route path="/brands/:brandId" element={<BrandDetail />} />
@@ -37,7 +42,7 @@ export default function App() {
           path="/brands/:brandId/yachts/:yachtId"
           element={<YachtDetail />}
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/access" replace />} />
       </Route>
     </Routes>
   );

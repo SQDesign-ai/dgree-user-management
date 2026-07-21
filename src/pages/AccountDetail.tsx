@@ -53,7 +53,7 @@ export default function AccountDetail() {
   const navigate = useNavigate();
 
   const account = accountById(accountId);
-  if (!account) return <Navigate to="/" replace />;
+  if (!account) return <Navigate to="/access" replace />;
 
   const accountBrands = brandsInAccount(accountId);
   const people = peopleInAccount(accountId);
@@ -63,7 +63,7 @@ export default function AccountDetail() {
     <>
       <PageHeader
         crumbs={[
-          { label: "Access management", to: "/" },
+          { label: "Access management", to: "/access" },
           { label: `${account.name} Account` },
         ]}
         title={account.name}

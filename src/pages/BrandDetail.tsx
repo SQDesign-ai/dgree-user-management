@@ -31,7 +31,7 @@ export default function BrandDetail() {
   const navigate = useNavigate();
 
   const brand = brandById(brandId);
-  if (!brand) return <Navigate to="/" replace />;
+  if (!brand) return <Navigate to="/access" replace />;
   const account = accountById(brand.accountId);
   const teams = teamsInBrand(brandId);
   const yachts = yachtsInBrand(brandId);
@@ -40,7 +40,7 @@ export default function BrandDetail() {
     <>
       <PageHeader
         crumbs={[
-          { label: "Access management", to: "/" },
+          { label: "Access management", to: "/access" },
           ...(account
             ? [{ label: `${account.name} Account`, to: `/accounts/${account.id}` }]
             : []),

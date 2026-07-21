@@ -12,3 +12,10 @@ export const FEATURES = {
   createBrand: false,
   createYacht: false,
 } as const;
+
+// -------------------------------------------------------------------------
+// The activation flow is played against one real yacht team, so every person
+// you can sign in as exists in the data and carries their own consent state.
+// -------------------------------------------------------------------------
+export const ACTIVATION_YACHT_ID = "sl50-171";
+export const ACTIVATION_YACHT_NAME = "SL50-171 · CONTIGO";
