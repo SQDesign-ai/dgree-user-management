@@ -43,11 +43,15 @@ function stepsFor(role: YachtRole): Step[] {
 }
 
 /**
- * People are held as handles elsewhere, but an activation email has to be
- * addressed to something that reads like an address.
+ * People are held as handles elsewhere; the platform identifies them by a
+ * name.surname username, which is what the activation email quotes.
  */
+function usernameOf(m: OwnerTeamMember): string {
+  return m.name.toLowerCase().replace(/\s+/g, ".");
+}
+
 function emailOf(m: OwnerTeamMember): string {
-  return `${m.handle.replace(/^@/, "").replace(/_/g, ".")}@example.com`;
+  return `${usernameOf(m)}@example.com`;
 }
 
 // -------------------------------------------------------------------------
@@ -97,33 +101,16 @@ export default function Activation() {
     setStepIndex((i) => Math.min(i + 1, steps.length - 1));
   }
 
-  const firstName = person.name.split(" ")[0];
 
   // ---- 0. The invitation email
   if (step === "email") {
     return (
-      <Shell onExit={restart}>
-        <Chrome label="Inbox" />
-        <div className="border-b border-line pb-3">
-          <p className="text-sm font-semibold text-white">
-            You&apos;ve been invited to {YACHT_NAME}
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            D.gree Yachting &lt;no-reply@dgree.com&gt; · to {emailOf(person)}
-          </p>
-        </div>
-        <div className="py-4 text-sm leading-relaxed text-ink-2">
-          <p>Hi {firstName},</p>
-          <p className="mt-3">
-            You have been added to {YACHT_NAME} as {roleLabel[person.role]}.
-            Activate your account to see the yacht&apos;s data.
-          </p>
-          <p className="mt-3 text-xs text-muted">
-            This link expires in 7 days.
-          </p>
-        </div>
-        <Button onClick={next}>Activate your account</Button>
-      </Shell>
+      <ActivationEmail
+        name={person.name}
+        username={usernameOf(person)}
+        to={emailOf(person)}
+        onFollowLink={next}
+      />
     );
   }
 
@@ -329,16 +316,107 @@ function Shell({
   );
 }
 
-/** Frames the card as something arriving from outside the product. */
-function Chrome({ label }: { label: string }) {
+/**
+ * The real Keycloak account-action email, from
+ * email-previews/04-keycloak-account-action.html — light, 530px, Arial, with
+ * the header and footer image bands. Reproduced rather than approximated so
+ * the flow starts where the recipient actually starts.
+ */
+function ActivationEmail({
+  name,
+  username,
+  to,
+  onFollowLink,
+}: {
+  name: string;
+  username: string;
+  to: string;
+  onFollowLink: () => void;
+}) {
+  const text: React.CSSProperties = {
+    fontSize: 16,
+    lineHeight: "120%",
+    color: "#000000",
+  };
   return (
-    <div className="-mx-6 -mt-6 mb-4 flex items-center gap-2 rounded-t-xl border-b border-line bg-nav px-4 py-2">
-      <span className="flex gap-1.5">
-        <span className="size-2 rounded-full bg-danger/70" />
-        <span className="size-2 rounded-full bg-warn/70" />
-        <span className="size-2 rounded-full bg-success/70" />
-      </span>
-      <span className="text-[11px] font-medium text-ink-3">{label}</span>
+    <div className="flex min-h-screen flex-col items-center bg-page px-6 py-10">
+      <div className="mb-4 w-full max-w-[530px]">
+        <div className="rounded-t-lg border border-line bg-nav px-4 py-2.5 text-xs text-ink-3">
+          <span className="font-medium text-white">Inbox</span> · to {to}
+        </div>
+      </div>
+
+      <div
+        className="w-full max-w-[530px] overflow-hidden"
+        style={{ background: "#ffffff", fontFamily: "Arial, Helvetica, sans-serif" }}
+      >
+        <div
+          style={{
+            height: 160,
+            background:
+              "url('https://cloud.dgree.com/email-assets/header.jpg') center / cover no-repeat",
+            backgroundColor: "#0e2d63",
+          }}
+        />
+
+        <div style={{ padding: "20px" }}>
+          <p style={{ ...text, margin: 0 }}>
+            Hello, <b>{name}</b>!
+          </p>
+          <p style={{ ...text, margin: "20px 0 0" }}>
+            Your profile has been created on D.gree platform
+          </p>
+          <p style={{ ...text, margin: "20px 0 0" }}>
+            The username is: <b>{username}</b>.
+          </p>
+          <p style={{ ...text, margin: "30px 0 0" }}>
+            Please follow the link to set your password:{" "}
+            <a
+              href="#set-password"
+              onClick={(e) => {
+                e.preventDefault();
+                onFollowLink();
+              }}
+              style={{ color: "#0d6efd" }}
+            >
+              Create_Password_Link
+            </a>{" "}
+            <b>Note</b>: This link is valid for <b>72 hours (3 days)</b>. If it
+            expires, don&apos;t hesitate to get in touch with your administrator
+            to request a new link.
+          </p>
+          <p style={{ ...text, margin: "20px 0 0" }}>
+            Start discovering the advantages of 360° monitoring and supervision
+            based on quality data.
+          </p>
+          <p style={{ ...text, margin: "30px 0 0" }}>The D.gree Team</p>
+        </div>
+
+        <div
+          style={{
+            height: 199,
+            background:
+              "url('https://cloud.dgree.com/email-assets/footer.jpg') center / cover no-repeat",
+            backgroundColor: "#0e2d63",
+            color: "#ffffff",
+            fontSize: 16,
+            textAlign: "center",
+            paddingTop: 40,
+            boxSizing: "border-box",
+          }}
+        >
+          <div>Contact D.gree Technologies</div>
+          <div style={{ marginTop: 10 }}>
+            <span style={{ borderBottom: "1px solid #ffffff" }}>dgree.tech</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 flex items-center justify-center gap-3 text-xs text-muted">
+        <Link to="/" className="transition-colors hover:text-white">
+          ← Prototype home
+        </Link>
+      </div>
     </div>
   );
 }
