@@ -46,7 +46,9 @@ export function Drawer({
         onClick={onClose}
       />
       <aside
-        className="relative z-10 flex h-full w-[50vw] min-w-[520px] max-w-full flex-col border-l border-line bg-surface-2 shadow-2xl [animation:drawer-in_220ms_cubic-bezier(0.22,1,0.36,1)]"
+        // min-width beats max-width in CSS, so the floor only applies once
+        // there is room for it — below that the drawer takes the full screen.
+        className="relative z-10 flex h-full w-full flex-col border-l border-line bg-surface-2 shadow-2xl [animation:drawer-in_220ms_cubic-bezier(0.22,1,0.36,1)] sm:w-[50vw] sm:min-w-[520px] sm:max-w-full"
         role="dialog"
         aria-modal="true"
       >
@@ -118,7 +120,8 @@ const control =
   "w-full rounded-lg border border-line bg-[#0e2149] px-3 py-2.5 text-sm text-ink placeholder:text-muted outline-none focus:border-brand/60 focus:ring-2 focus:ring-brand/20";
 
 export function Row({ children }: { children: ReactNode }) {
-  return <div className="grid grid-cols-2 gap-3">{children}</div>;
+  // Paired fields sit side by side only when that leaves each one usable.
+  return <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>;
 }
 
 export function TextField({

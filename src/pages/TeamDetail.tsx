@@ -77,7 +77,8 @@ export default function TeamDetail() {
             </Button>
           </div>
           <Card>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[420px] text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted-2">
                   <th className="px-5 py-3 font-medium">Member</th>
@@ -125,7 +126,8 @@ export default function TeamDetail() {
                   </tr>
                 )}
               </tbody>
-            </table>
+              </table>
+            </div>
             <div className="flex items-center justify-between border-t border-line px-5 py-3 text-xs text-muted">
               <span>
                 Showing {members.length} of {team.memberCount} members

@@ -92,7 +92,8 @@ export default function AccountDetail() {
             </Button>
           </div>
           <Card>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[420px] text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted-2">
                   <th className="px-5 py-3 font-medium">Person</th>
@@ -139,7 +140,8 @@ export default function AccountDetail() {
                   </tr>
                 )}
               </tbody>
-            </table>
+              </table>
+            </div>
           </Card>
           <p className="mt-3 text-xs leading-relaxed text-muted">
             People here have account-level access — reaching the brands shown and

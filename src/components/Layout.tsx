@@ -13,8 +13,8 @@ import {
   Bell,
   ChevronRight,
   ShieldCheck,
-  UserCheck,
   Home,
+  Menu,
 } from "lucide-react";
 import { Logo as DsLogo } from "@sqdesign-ai/dgree-ds-react";
 import { Avatar } from "./ui";
@@ -74,15 +74,16 @@ function SectionLabel({ children }: { children: ReactNode }) {
   );
 }
 
-function Sidebar() {
+function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <aside className="flex w-[236px] shrink-0 flex-col gap-1 rounded-xl bg-nav p-4">
+    <aside className="flex w-[236px] shrink-0 flex-col gap-1 overflow-y-auto rounded-xl bg-nav p-4">
       <div className="pb-4 pt-1">
         <Logo />
       </div>
 
       <Link
         to="/access"
+        onClick={onNavigate}
         className="mb-2 flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-white"
       >
         <span className="flex items-center gap-2.5">
@@ -117,7 +118,7 @@ function Sidebar() {
         Notifications
       </div>
 
-      <UserMenu />
+      <UserMenu onNavigate={onNavigate} />
     </aside>
   );
 }
@@ -125,9 +126,15 @@ function Sidebar() {
 // No auth in this prototype — the signed-in user is a placeholder.
 const CURRENT_USER = "User name";
 
-function UserMenu() {
+function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const [open, setOpen] = useState(false);
+  // Dismissing the popover only closes the popover; following a link out of it
+  // also closes the mobile nav drawer behind it.
   const close = () => setOpen(false);
+  const leave = () => {
+    setOpen(false);
+    onNavigate?.();
+  };
   const item =
     "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink-2 transition-colors hover:bg-white/[0.06] hover:text-white";
   return (
@@ -139,22 +146,19 @@ function UserMenu() {
             <div className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-nav-section">
               Pages
             </div>
-            <Link to="/access" onClick={close} className={item}>
+            <Link to="/access" onClick={leave} className={item}>
               <ShieldCheck className="size-[18px]" />
               Access management
             </Link>
-            <Link to="/fleet" onClick={close} className={item}>
+            <Link to="/fleet" onClick={leave} className={item}>
               <Ship className="size-[18px]" />
               D.gree fleet
             </Link>
-            {/* The other surface of the prototype, and the way back to the
-                door between them. */}
+            {/* The way back to the door between the two surfaces. Activation
+                itself forks by role there, so there is nothing to link to
+                directly from here. */}
             <div className="mt-1.5 border-t border-line pt-1.5">
-              <Link to="/activation" onClick={close} className={item}>
-                <UserCheck className="size-[18px]" />
-                Account activation
-              </Link>
-              <Link to="/" onClick={close} className={item}>
+              <Link to="/" onClick={leave} className={item}>
                 <Home className="size-[18px]" />
                 Prototype home
               </Link>
@@ -183,10 +187,39 @@ function UserMenu() {
 }
 
 export default function Layout({ children }: { children: ReactNode }) {
+  // Below lg the sidebar would leave the content a column too narrow to read,
+  // so it slides in over the page instead of sitting beside it.
+  const [navOpen, setNavOpen] = useState(false);
+
   return (
-    <div className="flex h-full bg-page p-4">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto px-8 py-5">
+    <div className="flex h-full bg-page p-0 lg:p-4">
+      <div className="hidden lg:flex">
+        <Sidebar />
+      </div>
+
+      {navOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setNavOpen(false)}
+          />
+          <div className="absolute inset-y-0 left-0 flex p-3">
+            <Sidebar onNavigate={() => setNavOpen(false)} />
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
+        <div className="mb-4 flex items-center gap-3 lg:hidden">
+          <button
+            onClick={() => setNavOpen(true)}
+            aria-label="Open menu"
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-line text-ink-2 transition-colors hover:bg-hover/40"
+          >
+            <Menu className="size-[18px]" />
+          </button>
+          <DsLogo className="h-6 w-auto" />
+        </div>
         <div className="mx-auto max-w-[1180px]">{children}</div>
       </main>
     </div>

@@ -10,10 +10,7 @@ import {
   type OwnerTeamMember,
   type YachtRole,
 } from "../data/mock";
-import {
-  ACTIVATION_YACHT_ID as YACHT_ID,
-  ACTIVATION_YACHT_NAME as YACHT_NAME,
-} from "../config";
+import { ACTIVATION_YACHT_ID as YACHT_ID } from "../config";
 
 const roleLabel: Record<YachtRole, string> = {
   owner: "Owner",
@@ -162,18 +159,20 @@ export default function Activation() {
 
   return (
     <Shell onExit={restart}>
+      {/* Account-level: activation can't count on knowing which yacht the
+          invitation came from, so it doesn't name one. */}
       <div className="mb-5 flex items-center gap-3">
         <Avatar name={person.name} />
         <span className="min-w-0 flex-1 leading-tight">
-          <span className="block text-sm font-medium text-white">
+          <span className="block truncate text-sm font-medium text-white">
             {person.name}
           </span>
           <span className="block text-xs text-muted">
-            {roleLabel[person.role]} · {YACHT_NAME}
+            {roleLabel[person.role]}
           </span>
         </span>
-        <span className="text-xs text-muted">
-          Step {position} of {numbered.length}
+        <span className="shrink-0 text-xs text-muted">
+          {position}/{numbered.length}
         </span>
       </div>
 
@@ -285,7 +284,7 @@ function Shell({
   onExit?: () => void;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-page px-6 py-16">
+    <div className="flex min-h-screen items-center justify-center bg-page px-4 py-10 sm:px-6 sm:py-16">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center">
           <Logo className="h-7 w-auto" />
@@ -339,7 +338,7 @@ function ActivationEmail({
     color: "#000000",
   };
   return (
-    <div className="flex min-h-screen flex-col items-center bg-page px-6 py-10">
+    <div className="flex min-h-screen flex-col items-center bg-page px-4 py-6 sm:px-6 sm:py-10">
       <div className="mb-4 w-full max-w-[530px]">
         <div className="rounded-t-lg border border-line bg-nav px-4 py-2.5 text-xs text-ink-3">
           <span className="font-medium text-white">Inbox</span> · to {to}

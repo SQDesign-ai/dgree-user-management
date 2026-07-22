@@ -44,10 +44,12 @@ function AccountCard({
     <Card className="mb-4 break-inside-avoid">
       <button
         onClick={() => navigate(`/accounts/${account.id}`)}
-        className="flex w-full items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-hover/30"
+        className="flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left transition-colors hover:bg-hover/30"
       >
-        <span className="font-semibold text-white">{account.name} account</span>
-        <span className="flex items-center gap-3">
+        <span className="min-w-0 truncate font-semibold text-white">
+          {account.name} account
+        </span>
+        <span className="flex shrink-0 items-center gap-3">
           <PeopleCount value={users} />
           <span className="text-xs text-muted">
             {account.brands.length}{" "}
