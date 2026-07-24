@@ -1293,19 +1293,9 @@ export function UserDetailDrawer({
         {teams.length === 0 ? (
           <Note>Not a member of any team yet.</Note>
         ) : (
-          <div className="flex flex-col gap-2">
-            {teams.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center justify-between rounded-lg border border-line px-3 py-2.5"
-              >
-                <span className="text-sm font-medium text-white">{t.name}</span>
-                {t.brand && (
-                  <span className="text-xs text-muted">{t.brand.name}</span>
-                )}
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-ink-2">
+            {teams.map((t) => t.name).join(", ")}
+          </p>
         )}
       </Section>
 

@@ -198,7 +198,7 @@ export const sailAdvTeams: SailAdvTeam[] = [
 export const teamsByBrand: Record<string, Team[]> = {
   sanlorenzo: [
     { id: "tech-dep", brandId: "sanlorenzo", name: "Tech Dep", memberCount: 21, assignedBoats: 43 },
-    { id: "customer-care", brandId: "sanlorenzo", name: "Customer Care", memberCount: 0, assignedBoats: 43 },
+    { id: "customer-care", brandId: "sanlorenzo", name: "Customer Care", memberCount: 2, assignedBoats: 43 },
     { id: "warranty-dep", brandId: "sanlorenzo", name: "Warranty Dep", memberCount: 0, assignedBoats: 43 },
   ],
 };
@@ -213,6 +213,12 @@ export const membersByTeam: Record<string, Member[]> = {
     { id: "a-venturi", name: "Alberto Venturi", handle: "@a.venturi", status: "active" },
     { id: "a-castagno", name: "Andrea Castagno", handle: "@a_castagno", status: "active" },
     { id: "b-gerceker", name: "berkay gerceker", handle: "@b_gerceker", status: "invited" },
+  ],
+  // A couple of Tech Dep people also sit in Customer Care, so the user-details
+  // drawer has someone who is linked into more than one team.
+  "customer-care": [
+    { id: "a-franzi", name: "Alessandro Franzi", handle: "@a_franzi", status: "active" },
+    { id: "a-gatto", name: "Alberto Gatto", handle: "@a_gatto", status: "active" },
   ],
 };
 
