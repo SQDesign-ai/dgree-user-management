@@ -6,7 +6,9 @@ import { Badge, Button, Card, SearchInput, Avatar } from "../components/ui";
 import { PeopleCount } from "@sqdesign-ai/dgree-ds-react";
 import {
   AddTeamPeopleDrawer,
+  UserDetailDrawer,
 } from "../components/drawers";
+import type { Member } from "../data/mock";
 import {
   useStore,
   brandById,
@@ -40,6 +42,7 @@ export default function TeamDetail() {
   const navigate = useNavigate();
 
   const [personOpen, setPersonOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
   const brand = brandById(brandId);
   const team = teamById(brandId, teamId);
@@ -90,6 +93,7 @@ export default function TeamDetail() {
                 {members.map((m) => (
                   <tr
                     key={m.id}
+                    onClick={() => setSelectedMember(m)}
                     className="cursor-pointer border-b border-line-soft/60 transition-colors last:border-0 hover:bg-hover/40"
                   >
                     <td className="px-5 py-3">
@@ -201,6 +205,10 @@ export default function TeamDetail() {
         teamName={team.name}
       />
 
+      <UserDetailDrawer
+        member={selectedMember}
+        onClose={() => setSelectedMember(null)}
+      />
     </>
   );
 }

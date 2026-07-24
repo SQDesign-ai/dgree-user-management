@@ -223,6 +223,18 @@ export const yachtsInBrand = (brandId: string) =>
   state.yachtsByBrand[brandId] ?? [];
 export const membersInTeam = (teamId: string) =>
   state.membersByTeam[teamId] ?? [];
+/** Every team a person belongs to, with the brand it sits under. */
+export const teamsForMember = (memberId: string): (Team & { brand?: Brand })[] => {
+  const out: (Team & { brand?: Brand })[] = [];
+  for (const teams of Object.values(state.teamsByBrand)) {
+    for (const team of teams) {
+      if ((state.membersByTeam[team.id] ?? []).some((m) => m.id === memberId)) {
+        out.push({ ...team, brand: brandById(team.brandId) });
+      }
+    }
+  }
+  return out;
+};
 export const ownerTeamOfYacht = (yachtId: string) =>
   state.ownerTeamByYacht[yachtId] ?? [];
 export const teamById = (brandId: string, teamId: string) =>

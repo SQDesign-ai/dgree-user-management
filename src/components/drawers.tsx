@@ -28,11 +28,15 @@ import {
   setYachtTeamLinks,
   updateOwnerTeamMember,
   removeOwnerTeamMember,
+  teamsForMember,
 } from "../store";
 import {
   type YachtRole,
   type OwnerTeamMember,
   type Person,
+  type Member,
+  CURRENT_TC_VERSION,
+  CURRENT_PRIVACY_VERSION,
 } from "../data/mock";
 
 // -------------------------------------------------------------------------
@@ -1177,5 +1181,194 @@ export function YachtTeamMemberDrawer({
         </p>
       </div>
     </Drawer>
+  );
+}
+
+// -------------------------------------------------------------------------
+// User details
+//
+// A simplified take on the platform's Edit-user page: the same shape —
+// personal info, user info, documents, activation, delete — minus the parts
+// that don't belong on a team member (the flat "access to yachts" tag cloud
+// becomes the teams this person is linked into). Nothing here persists; it's
+// the read/edit surface, opened from a member row.
+// -------------------------------------------------------------------------
+const USER_TYPES = [
+  { value: "platform-user", label: "Platform User" },
+  { value: "platform-admin", label: "Platform Admin" },
+  { value: "brand-user", label: "Brand User" },
+];
+
+function splitName(full: string): [string, string] {
+  const parts = full.trim().split(/\s+/);
+  return [parts[0] ?? "", parts.slice(1).join(" ")];
+}
+
+function emailFromHandle(handle: string): string {
+  return `${handle.replace(/^@/, "").replace(/_/g, ".")}@example.com`;
+}
+
+export function UserDetailDrawer({
+  member,
+  onClose,
+}: {
+  member: Member | null;
+  onClose: () => void;
+}) {
+  const [firstName, surnameFromName] = member
+    ? splitName(member.name)
+    : ["", ""];
+  const [name, setName] = useState(firstName);
+  const [surname, setSurname] = useState(surnameFromName);
+  const [email, setEmail] = useState(member ? emailFromHandle(member.handle) : "");
+  const [userType, setUserType] = useState("platform-user");
+  const [active, setActive] = useState(member?.status !== "suspended");
+  const [resent, setResent] = useState(false);
+
+  // Reset local edits whenever a different member opens the drawer.
+  useEffect(() => {
+    if (!member) return;
+    const [n, s] = splitName(member.name);
+    setName(n);
+    setSurname(s);
+    setEmail(emailFromHandle(member.handle));
+    setUserType("platform-user");
+    setActive(member.status !== "suspended");
+    setResent(false);
+  }, [member]);
+
+  if (!member) return null;
+
+  // Someone still on an invite hasn't accepted anything yet.
+  const signedIn = member.status !== "invited";
+  const teams = teamsForMember(member.id);
+
+  return (
+    <Drawer
+      open={!!member}
+      onClose={onClose}
+      title="User details"
+      submitLabel="Save"
+      onSubmit={onClose}
+    >
+      {/* Invited but never activated: the admin can send the link again. */}
+      {!signedIn && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2.5">
+          <p className="text-xs leading-relaxed text-ink-2">
+            {resent
+              ? "Activation link sent again."
+              : "Invited — hasn't activated their account yet."}
+          </p>
+          <Button
+            variant="secondary"
+            onClick={() => setResent(true)}
+            disabled={resent}
+          >
+            {resent ? "Sent" : "Re-send link"}
+          </Button>
+        </div>
+      )}
+
+      <Section title="Personal information">
+        <Row>
+          <TextField label="Name" value={name} onChange={setName} />
+          <TextField label="Surname" value={surname} onChange={setSurname} />
+        </Row>
+        <TextField label="Email" value={email} onChange={setEmail} />
+      </Section>
+
+      <Section title="User information">
+        <Row>
+          <AssignField label="Username" value={member.handle.replace(/^@/, "")} />
+          <SelectField
+            label="User type"
+            value={userType}
+            onChange={setUserType}
+            options={USER_TYPES}
+          />
+        </Row>
+      </Section>
+
+      <Section title="Linked teams">
+        {teams.length === 0 ? (
+          <Note>Not a member of any team yet.</Note>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {teams.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between rounded-lg border border-line px-3 py-2.5"
+              >
+                <span className="text-sm font-medium text-white">{t.name}</span>
+                {t.brand && (
+                  <span className="text-xs text-muted">{t.brand.name}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title="T&C, Privacy Policy">
+        {signedIn ? (
+          <div className="flex gap-2">
+            <Badge tone="neutral">T&amp;C {CURRENT_TC_VERSION}</Badge>
+            <Badge tone="neutral">Privacy {CURRENT_PRIVACY_VERSION}</Badge>
+          </div>
+        ) : (
+          <Note>Nothing accepted yet — invited, not signed in.</Note>
+        )}
+      </Section>
+
+      <Section title="User activation">
+        <button
+          type="button"
+          onClick={() => setActive((a) => !a)}
+          className="flex items-center gap-3"
+        >
+          <span
+            className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+              active ? "bg-brand" : "bg-line"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 size-4 rounded-full bg-white transition-transform ${
+                active ? "translate-x-4" : "translate-x-0.5"
+              }`}
+            />
+          </span>
+          <span className="text-sm text-ink-2">
+            {active ? "User is active" : "User is suspended"}
+          </span>
+        </button>
+      </Section>
+
+      <Section title="Delete user">
+        <p className="mb-3 text-xs leading-relaxed text-muted">
+          Deleting this user removes all associated data permanently. This
+          action cannot be undone.
+        </p>
+        <Button variant="danger" onClick={onClose}>
+          <Trash2 className="size-4" />
+          Delete
+        </Button>
+      </Section>
+    </Drawer>
+  );
+}
+
+/** A titled block, mirroring the sections on the real Edit-user page. */
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-3 border-b border-line pb-5 last:border-0 last:pb-0">
+      <h3 className="text-sm font-semibold text-white">{title}</h3>
+      {children}
+    </div>
   );
 }
